@@ -1,0 +1,89 @@
+# P2P
+
+### Problem
+Competitive programming plays key role in increasing problem solving abilities and knowledge on Data structure and algorithms among participants. After giving contest many of the participants in the contest want to discuss with others but other than codeforces comment section there is no other place where they can discuss.
+
+### Solution 
+Discussion on codeforces comment section is also not that efficient way of sharing ideas compared to real time discussion through audio and video. So our idea is to build a real time discussion platform. And we have extended this idea to other competitive exams like JEE, CAT, GATE by creating a common examination on the platform.
+
+### Detailing
+<ul>
+<li>We restricted to codeforces and JEE for this prototype and can be easily expanded to other sections</li>
+
+  <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/home.png" style="border:solid 5px"/>
+ <li> Users will be able to register with their username(unique),email(unique) and password to the website and registered users will be redirected to the dashboard page.
+  </li>
+  <ul>
+  <li>For codeforces section users will get authenticated with their handles</li>
+  </ul>
+ <li>
+  In the dashboard page there will be a list of events will be displayed along with their respective start times.There are two types of events
+        <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/discussion.png" style="border:solid 5px"/>
+    <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/events2.png" style="border:solid 5px"/>
+    <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/events3.png" style="border:solid 5px"/>
+    <ul>
+    <li>Discussion Event</li>
+    <ul>
+    <li>This event is to have discussion among peers</li>
+    <li>Discussion events are based on exam/contests. For competitve prgramming sections, there will be already contests on various platforms like codeforces, codechef, atcoder we will be allowing participants who participated in the correspoding contest event to register and participate in the discussion</li>
+    </ul>
+    <li>Exam Event</li>
+    <ul>
+    <li>For contest discssion there is already a common contest on competitive programming platforms. But for other sections like JEE, CAT, GATE there will be no common exam for all the participants. So we have implemented exam portal where we keep a common exam for each section and followed by its discussion event </li>
+    <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/exam1.png" style="border:solid 5px" />
+    <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/results.png" style="border:solid 5px" />
+    </ul>
+    </ul>
+ </li>
+ <li>
+   Now the Users will select the particular event and click on register for the event.Users should register before the event start time.
+ </li>
+  <li>
+    After the event started, user can join the event, if it is a exam event they will be redirected to eaxm portal where the exam takes place, if it is a discusion event then it will be redirected to Global room.
+  </li>
+  <li>
+    Here global room consists of all the users who have registered for that event with their username and score of its corresponding contest/exam.
+    <figure>
+    <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/Groom.png"  style="border:solid 5px"/>
+    <figcaption>user vivek1 sent request to adarsh1</figcaption>
+    </figure>
+        <figure>
+    <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/AdarshGroom.png"  style="border:solid 5px"/>
+    <figcaption>adarsh will be receiving the request in real time</figcaption>
+    </figure>
+  </li>
+  <li>
+    Users can click on request on any of the users profile if he/she wants to discuss about the contest/exam with that user.
+  </li>
+  <li>
+    Also in global room the user can see the requests that other users made for him inorder to join the post contest/discussion with him. This works in real time where we have used web sockets (socket.io) library to handle the communication instead of HTTP request/response. 
+  </li>
+  <li>
+    Now the user can accept any one of the request he/she received and both of the users will be given a unique link where they can do post contest/exam discussion through live video stream which we have implemented using peer.js/webrtc library.
+  </li>
+  <li> User can start random pairing option which randomly pairs with other registered user who are also started random pairing on there side.</li>
+        <figure>
+    <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/roomLink.png"  style="border:solid 5px"/>
+    <figcaption>vivek1 got the request</figcaption>
+    </figure>
+    <li>Request sending, request recieving, room link sending , room link recieving are all real time communications</li>
+        <figure>
+    <img src="https://github.com/Sanath91009/Hackathon_frontend/tree/main/src/images/readmeImages/Proom.png"  style="border:solid 5px"/>
+    <figcaption>Both joined in a room (since it is not depolyed yet, both are running in the same machine, so both have same images)</figcaption>
+    </figure>    
+</ul>
+
+
+### Techstack
+<ul>
+<li>Frontend : Reactjs</li>
+<li>Backend  : Nodejs</li>
+<li>Database : MongoDB Atlas</li>
+</ul>
+
+### Contributors
+<ul>
+<li>Sanath Kumar Vengaldas</li>
+<li>Adarsh Reddy</li>
+<li>Vivek Kurma</li>
+</ul>

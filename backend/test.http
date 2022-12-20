@@ -1,0 +1,253 @@
+post http://localhost:1337/events/createEvent
+Content-Type: application/json
+
+{
+    "name": "round 323",
+    "date": 1671267930917,
+    "section": "JEE",
+    "type":"discussion"
+}
+
+###
+post http://localhost:1337/events/getScore
+Content-Type: application/json
+
+{
+    "examId": "639f64d3995743ce86d876ed",
+    "username": "vivek1"
+}
+
+
+### post questions
+post http://localhost:1337/events/getScore
+Content-Type: application/json
+
+{
+    "examId": "639cc998bd45e053c09184bc",
+    "answers":[
+        {
+            "questionId":"639cc998bd45e053c09184bd",
+            "answer":[false, true, false, false]
+        },
+        {
+            "questionId":"639cc998bd45e053c09184be",
+            "answer":[false, true, false, false]
+        },
+        {
+            "questionId":"639cc998bd45e053c09184bf",
+            "answer":[false, true, false, false]
+        }
+    ]
+}
+
+### post questions
+post http://localhost:1337/events/createEvent
+Content-Type: application/json
+
+{
+    "name": "round 321",
+    "date": 1671233050625,
+    "section": "JEE",
+    "type":"discussion",
+    "questions":[
+        {
+            "subjectType":"Maths",
+            "questionDesc":"1+2",
+            "answer":[false, true, false, false],
+            "options":["0", "3", "4", "5"]
+        },
+        {
+            "subjectType":"Physics",
+            "questionDesc":"gravity",
+            "answer":[false, true, false, false],
+            "options":["9.9", "9.8", "10.1", "10"]
+        },
+        {
+            "subjectType":"Chemistry",
+            "questionDesc":"acid",
+            "answer":[false, true, false, false],
+            "options":["PO5", "HCl", "CaCo3", "NaOH"]
+        }
+    ]
+}
+
+
+### get questions
+get http://localhost:1337/events/getQuestions?examId=639cc998bd45e053c09184bc
+Content-Type: application/json
+
+###
+post http://localhost:1337/events/updateScore
+Content-Type: application/json
+
+{
+    "eventID": "639c8c823fc8663c56de3b15",
+    "username":"sktime1",
+    "score":100
+}
+
+
+###
+post http://localhost:1337/events/register
+Content-Type: application/json
+
+{
+    "username": "sanath_kumar",
+    "eventID": "639c451c8e26e9f3cdd10cf9"
+}
+
+###
+post http://localhost:1337/register/jee
+Content-Type: application/json
+
+{
+    "username": "sdfr",
+    "password": "shadar",
+    "email_id": "adarsh333reddy@gmail.com"
+}
+
+###
+post http://localhost:1337/login
+Content-Type: application/json
+
+{
+    "username":"sanath_kumar",
+    "password":"abcdef"
+}
+
+###
+get http://localhost:1337/logout
+        
+###
+post http://localhost:1337/feed
+Content-Type: application/json
+
+{
+    "content":"England's umpteenth batting collapse in Hobart and their meek concession of the series also kind of left their victors a little unsure of their own supremacy"
+}
+
+###
+get http://localhost:1337/feed
+
+###
+get http://localhost:1337/feed/1
+
+
+###
+post http://localhost:1337/like
+
+###
+get http://localhost:1337/network
+
+###
+post http://localhost:1337/network/pending-connection
+Content-Type: application/json
+
+{
+    "celebrity":1
+}
+
+###
+post http://localhost:1337/network/new-connection
+Content-Type: application/json
+
+{
+    "fan":11
+}
+
+###
+get http://localhost:1337/network/my-connections
+
+###
+post http://localhost:1337/network/decline-connection
+Content-Type: application/json
+
+{
+    "enemy":9
+}
+
+###
+get http://localhost:1337/profile/profile-details
+
+### 
+post http://localhost:1337/profile/view-profile
+Content-Type: application/json
+
+{
+    "view_user":"harsha"
+}
+
+###
+post http://localhost:1337/profile/del-request
+Content-Type: application/json
+
+{
+    "celebrity":2
+}
+
+###
+post http://localhost:1337/profile/del-connection
+Content-Type: application/json
+
+{
+   "other":11
+}
+
+###
+post http://localhost:1337/post/likes
+Content-Type: application/json
+
+{
+    "post_id":1
+}
+
+###
+post http://localhost:1337/post/dislikes
+Content-Type: application/json
+
+{
+    "post_id":1
+}
+
+###
+get http://localhost:1337/post/likes/1
+
+### Get all Questions
+get http://localhost:1337/question/all?examId=639b802c00e2f12db658a030
+Content-Type: application/json
+
+
+### Post a question
+post http://localhost:1337/question/question
+Content-Type: application/json
+
+{
+        "examId":"639b802c00e2f12db658a030",
+        "subjectType":"Maths",
+        "questionDescription":"1+2",
+        "answer":[false, true, false, false],
+        "options":["0", "3", "4", "5"]
+} 
+
+### exam info
+post http://localhost:1337/exam/examInfo
+Content-Type: application/json
+
+{
+    "examName":"Weekend",
+    "examType":"JEE",
+    "examDate":"Thu Apr 03 2014"
+}
+
+#### ubidots
+post https://industrial.api.ubidots.com/api/v1.6/variables/639b7582e08182000e509e82/values
+Content-Type: application/json
+X-Auth-Token: BBFF-ZL79ZGgIK6SUE8qMOlprUzd621EYG6
+
+{
+    "value": 10,
+    "timestamp": 1634311791000,
+    "context": {
+      "status": "cold"
+    }
+}
