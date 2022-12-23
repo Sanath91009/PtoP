@@ -15,11 +15,16 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Chatbox } from "../components/chatbox";
 import { v4 as uuidv4 } from "uuid";
 import "../css/Proom.css";
+import userImg from "../images/defaultUser.png";
 const Windowheight = window.innerHeight;
 export const PrivateRoom = () => {
     const location = useLocation();
     const roomID = location.pathname.split("/").pop();
-    const [streamState, setStreamState] = useState(null);
+    const [streamState, setStreamState] = useState();
+    // const streamStateRef
+    // const _setStreamState=(streamState)=>{
+    //     set
+    // }
     const [chat, setChat] = useState(1);
     const [myuserId, setMyUserId] = useState(uuidv4());
     const [micButton, setMicButton] = useState({
@@ -28,34 +33,11 @@ export const PrivateRoom = () => {
     });
     const [screenID, setScreenID] = useState(null);
     const [messages, setMessages] = useState([]);
-    const peers = {};
-    const [numVideos, setNumVideos] = useState(0);
+    const [peers, setPeers] = useState({});
     const [mapper, setMapper] = useState({});
-    const [streamMapper, setStreamMapper] = useState({});
-
-    // const _setStreamMapper=()=>{
-    //     setStreamMapper
-    // }
-    const stopVideoCamHandler = (data) => {
-        console.log("stream wrapper : ", streamMapper, data);
-        const streamMapper_temp = streamMapper;
-        console.log(
-            "streamMapper_temp[data.userID] : ",
-            streamMapper_temp[data.userID]
-        );
-        // streamMapper_temp[data.userID].removeTrack(
-        //     streamMapper_temp[data.userID].getVideoTracks()[0]
-        // );
-        streamMapper_temp[data.userID].videoCard.srcObject = null;
-        streamMapper_temp[data.userID].videoCard.poster = "hi";
-        setStreamMapper(() => streamMapper);
-    };
-
-    const stopVideoCamHandlerRef = useRef();
-    stopVideoCamHandlerRef.current = stopVideoCamHandler;
     const [videoButton, setVideoButton] = useState({
-        className: "btn btn-dark",
-        icon: faVideoCamera,
+        className: "btn btn-danger",
+        icon: faVideoSlash,
     });
     const [chatButton, setChatButton] = useState({
         icon: faComment,
@@ -64,27 +46,33 @@ export const PrivateRoom = () => {
     const [screenButton, setScreenButton] = useState({
         className: "btn btn-secondary",
     });
+    const userStreams = {};
     const [screenStream, setScreenStream] = useState(null);
     const [othersScreenShare, setOthersScreenShare] = useState(false);
     const [usersInRoom, setUsersInRoom] = useState([]);
-    const [username, setUsername] = useState("hi");
+    const [username, setUsername] = useState("sanath");
+    const [videoID, setVideoId] = useState(0);
+    const setVideoRef = useRef();
+    setVideoRef.current = setVideoId;
     const socket = io.connect(config.apiUrl);
     const myPeer = new Peer(myuserId);
 
-    const addToPeers = (userID, call, videoCard, screenStream = false) => {
-        console.log("adding...", screenStream);
+    const addToPeers = (userID, call, videoCard, type = "normal") => {
         const obj = {
             call: call,
             videoCard: videoCard,
-            screenStream: screenStream,
+            type: type,
         };
-        if (peers[userID] === undefined) {
-            peers[userID] = [obj];
+        const peers_temp = peers;
+        if (peers_temp[userID] === undefined) {
+            peers_temp[userID] = [obj];
         } else {
-            peers[userID] = [obj, ...peers[userID]];
+            peers_temp[userID] = [obj, ...peers_temp[userID]];
         }
+        setPeers((prev) => peers_temp);
+        console.log("after adding , ", peers);
     };
-    const getVideoClass = () => {
+    const getVideoClass = (userID) => {
         const videoClass = document.querySelector(".videos");
         const myVideo = document.createElement("video");
         const div_wrapper = document.createElement("div");
@@ -92,48 +80,52 @@ export const PrivateRoom = () => {
         div_wrapper.style =
             "display: flex; justify-content: center; height: 100%;";
         myVideo.classList.add("camVideo");
-        myVideo.classList.add(numVideos);
+        myVideo.classList.add(`V${videoID}`);
+        const mapper_temp = mapper;
+        mapper_temp[userID] = videoID;
+        setMapper(() => mapper_temp);
+        setVideoId((videoID) => {
+            return videoID + 1;
+        });
         return {
             MainClass: videoClass,
             myEle: myVideo,
             div_wrapper: div_wrapper,
         };
     };
+
+    const getVideoClassRef = useRef();
+    getVideoClassRef.current = getVideoClass;
+    console.log("videoID : ", videoID);
     const VideoStreamingInit = async () => {
+        var canvas = document.createElement("canvas");
+        var canvas_stream = canvas.captureStream(25);
+        var canvas_track = canvas_stream.getTracks()[0];
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
+            video: false,
             audio: true,
         });
         stream.getAudioTracks()[0].enabled = false;
-        console.log("stream : ", stream);
-        const elements = getVideoClass();
+        // stream.getVideoTracks()[0].stop();
+        stream.addTrack(canvas_track);
+        // stream.getVideoTracks()[0].stop();
+        const elements = getVideoClassRef.current(myuserId);
+        setStreamState((prev) => stream);
         addVideoStream(
             elements.myEle,
             elements.div_wrapper,
             elements.MainClass,
-            stream
+            stream,
+            true
         );
-        setNumVideos(numVideos + 1);
         myPeer.on("call", (call) => {
             call.answer(stream);
             console.log("call answered : ", call.metadata);
             const userID = call.metadata.userID;
             setUsersInRoom(() => [userID, ...usersInRoom]);
-            const Videoelements = getVideoClass();
+            const Videoelements = getVideoClassRef.current(userID);
             // const ImgElements = getImgClass();
             call.on("stream", (stream_temp) => {
-                const streamMapper_temp = { ...streamMapper };
-                console.log(
-                    "userid and stram : ",
-                    userID,
-                    stream_temp,
-                    stream_temp.getVideoTracks()
-                );
-                streamMapper_temp[userID] = {
-                    stream: stream_temp,
-                    videoCard: Videoelements.myEle,
-                };
-                setStreamMapper(() => streamMapper_temp);
                 addVideoStream(
                     Videoelements.myEle,
                     Videoelements.div_wrapper,
@@ -143,10 +135,56 @@ export const PrivateRoom = () => {
             });
             addToPeers(userID, call, Videoelements.div_wrapper);
         });
-        socket.on("user-connected", (userID) => {
-            console.log("user connected...");
-            connectUser(userID, stream);
+        myPeer.on("connection", function (conn) {
+            console.log("opened in answered side...");
+            conn.on("open", function () {
+                setVideoButton((videoButton) => {
+                    if (videoButton["className"] == "btn btn-danger") {
+                        console.log("sending remve");
+                        conn.send({
+                            userID: myuserId,
+                            remove: true,
+                            firstMessage: true,
+                        });
+                    } else {
+                        console.log("send first message");
+                        conn.send({ userID: myuserId, firstMessage: true });
+                    }
+                    return videoButton;
+                });
+                conn.on("data", function (data) {
+                    console.log("received from data channel : ", data);
+                    if (data.remove != undefined && data.remove == true) {
+                        const video = document.querySelector(
+                            `.V${mapper[data.userID]}`
+                        );
+                        console.log("removing : ", video, video.srcObject);
+                        if (
+                            video.srcObject != null ||
+                            video.srcObject != undefined
+                        ) {
+                            userStreams[data.userID] = video.srcObject;
+                        }
+
+                        video.srcObject = undefined;
+                        video.poster = userImg;
+                    }
+                    if (data.add != undefined && data.add == true) {
+                        const video = document.querySelector(
+                            `.V${mapper[data.userID]}`
+                        );
+                        console.log("adding : ", userStreams);
+                        video.srcObject = userStreams[data.userID];
+                        video.poster = userImg;
+                    }
+                    if (data.userID != undefined && data.firstMessage == true) {
+                        addToPeers(data.userID, conn, null, "data");
+                        console.log("data");
+                    }
+                });
+            });
         });
+
         socket.on("screen-share-recv", (data) => {
             console.log("screen share recv : ", data, stream);
             setOthersScreenShare((prev) => true);
@@ -163,7 +201,7 @@ export const PrivateRoom = () => {
                     screenPart.play();
                 });
                 screen_class.append(screenPart);
-                addToPeers(data.userID, call, screenPart, true);
+                addToPeers(data.userID, call, screenPart, "screen");
             });
         });
         socket.on("stopped-screen-share-recv", () => {
@@ -175,7 +213,7 @@ export const PrivateRoom = () => {
         socket.on("stop-video-cam-recv", (data) =>
             stopVideoCamHandlerRef.current(data)
         );
-        setStreamState((prev) => stream);
+
         console.log("stream : ", stream.getVideoTracks());
     };
     useEffect(() => {
@@ -183,27 +221,123 @@ export const PrivateRoom = () => {
             console.log("opened : ", id);
             socket.emit("join-room", roomID, id);
         });
-
         VideoStreamingInit();
+
+        const handler = (userID) => {
+            console.log("in handler ...");
+            setStreamState((streamState) => {
+                const call = myPeer.call(userID, streamState, {
+                    metadata: { userID: myuserId, replace: false },
+                });
+                console.log("call when connected user : ", call, streamState);
+                const Videoelements = getVideoClassRef.current(userID);
+                call.on("stream", (stream_temp) => {
+                    addVideoStream(
+                        Videoelements.myEle,
+                        Videoelements.div_wrapper,
+                        Videoelements.MainClass,
+                        stream_temp
+                    );
+                });
+                addToPeers(userID, call, Videoelements.div_wrapper);
+                return streamState;
+            });
+
+            var conn = myPeer.connect(userID);
+            conn.on("open", function () {
+                console.log("opened ", videoButton);
+                setVideoButton((videoButton) => {
+                    if (videoButton["className"] == "btn btn-danger") {
+                        conn.send({
+                            userID: myuserId,
+                            remove: true,
+                            firstMessage: true,
+                        });
+                    } else {
+                        conn.send({ userID: myuserId, firstMessage: true });
+                    }
+                    return videoButton;
+                });
+                conn.on("data", function (data) {
+                    console.log("received from data channel : ", data);
+                    if (data.remove != undefined && data.remove == true) {
+                        const timer = setTimeout(() => {
+                            const video = document.querySelector(
+                                `.V${mapper[data.userID]}`
+                            );
+                            console.log("removing : ", video, video.srcObject);
+                            if (
+                                video.srcObject != null ||
+                                video.srcObject != undefined
+                            )
+                                userStreams[data.userID] = video.srcObject;
+                            video.srcObject = undefined;
+                            video.poster = userImg;
+                        }, 1000);
+                    }
+                    if (data.add != undefined && data.add == true) {
+                        const video = document.querySelector(
+                            `.V${mapper[data.userID]}`
+                        );
+                        console.log("adding : ", userStreams);
+                        video.srcObject = userStreams[data.userID];
+                        video.poster = userImg;
+                    }
+                    if (data.userID != undefined && data.firstMessage == true) {
+                        addToPeers(data.userID, conn, null, "data");
+                        console.log("data");
+                    }
+                });
+            });
+
+            addToPeers(userID, conn, null, "data");
+        };
+        socket.on("user-connected", handler);
+        return () => socket.off("user-connected", handler);
     }, []);
     useEffect(() => {
         socket.on("user-disconnected", (userID) => {
             console.log("user disconnedted : ", userID);
             console.log("peers : ", peers[userID]);
             peers[userID].forEach((stream) => {
-                if (stream.videoCard) stream.videoCard.remove();
-                stream.call.close();
-                if (stream.screenStream == true) {
-                    setOthersScreenShare(() => false);
-                }
+                deleteStream(stream);
             });
 
             delete peers[userID];
         });
     }, [socket]);
+    const deleteStream = (stream) => {
+        if (stream.videoCard) stream.videoCard.remove();
+        stream.call.close();
+        if (stream.type == "screen") {
+            setOthersScreenShare(() => false);
+        }
+    };
+    const stopVideoCamHandler = (data) => {
+        console.log("video closing : ", data);
+        peers[data.userID].forEach((stream) => {
+            if (stream.type == "normal") {
+                stream.videoCard.childNodes[0].srcObject = undefined;
+                stream.videoCard.childNodes[0].poster = userImg;
+            }
+        });
+    };
+    const stopVideoCamHandlerRef = useRef();
+    stopVideoCamHandlerRef.current = stopVideoCamHandler;
 
-    const addVideoStream = (myVideo, div_wrapper, videos_class, stream) => {
-        myVideo.srcObject = stream;
+    const addVideoStream = (
+        myVideo,
+        div_wrapper,
+        videos_class,
+        stream,
+        stop = false
+    ) => {
+        if (stop == true) {
+            myVideo.srcObject = undefined;
+            myVideo.poster = userImg;
+        } else {
+            myVideo.srcObject = stream;
+        }
         myVideo.autoPlay = true;
         myVideo.addEventListener("loadedmetadata", () => {
             myVideo.play();
@@ -211,27 +345,7 @@ export const PrivateRoom = () => {
         div_wrapper.append(myVideo);
         videos_class.append(div_wrapper);
     };
-    const connectUser = (userID, stream) => {
-        const call = myPeer.call(userID, stream, {
-            metadata: { userID: myuserId },
-        });
-        const Videoelements = getVideoClass();
-        call.on("stream", (stream_temp) => {
-            const streamMapper_temp = { ...streamMapper };
-            streamMapper_temp[userID] = {
-                stream: stream_temp,
-                videoCard: Videoelements.myEle,
-            };
-            setStreamMapper(() => streamMapper_temp);
-            addVideoStream(
-                Videoelements.myEle,
-                Videoelements.div_wrapper,
-                Videoelements.MainClass,
-                stream_temp
-            );
-        });
-        addToPeers(userID, call, Videoelements.div_wrapper);
-    };
+
     const HandleMicButton = () => {
         const micButton_temp = { ...micButton };
         if (micButton_temp["className"] == "btn btn-danger") {
@@ -251,24 +365,61 @@ export const PrivateRoom = () => {
         if (videoButton_temp["className"] == "btn btn-danger") {
             videoButton_temp["className"] = "btn btn-dark";
             videoButton_temp["icon"] = faVideoCamera;
-            streamState.removeTrack(streamState.getVideoTracks()[0]);
+            const streamState_temp = streamState;
+            if (streamState.getVideoTracks().length > 0)
+                streamState_temp.removeTrack(streamState.getVideoTracks()[0]);
             navigator.mediaDevices
                 .getUserMedia({
                     video: true,
                 })
-                .then((vstream) => {
-                    const stream_temp = streamState;
-                    stream_temp.addTrack(vstream.getVideoTracks()[0]);
-                    setScreenStream(() => stream_temp);
+                .then((stream) => {
+                    streamState_temp.addTrack(stream.getVideoTracks()[0]);
+                    setScreenStream(streamState_temp);
+                    const myVideo = document.querySelector(".V0");
+                    myVideo.poster = undefined;
+                    myVideo.srcObject = stream;
+                    Object.keys(peers).forEach((key) => {
+                        peers[key].forEach((stream_temp) => {
+                            if (stream_temp.type == "normal") {
+                                console.log(
+                                    "sflsdlf : ",
+                                    stream_temp.call.peerConnection.getSenders()
+                                );
+                                stream_temp.call.peerConnection
+                                    .getSenders()[1]
+                                    .replaceTrack(stream.getVideoTracks()[0]);
+                            }
+                            if (stream_temp.type == "data") {
+                                console.log("sent data");
+                                stream_temp.call.send({
+                                    userID: myuserId,
+                                    add: true,
+                                });
+                            }
+                        });
+                    });
                 });
         } else {
             videoButton_temp["className"] = "btn btn-danger";
             videoButton_temp["icon"] = faVideoSlash;
+
             streamState.getVideoTracks()[0].stop();
-            socket.emit("stop-video-cam-send", {
-                userID: myuserId,
-                roomID: roomID,
+            const myVideo = document.querySelector(".V0");
+            myVideo.srcObject = null;
+            myVideo.poster = userImg;
+            Object.keys(peers).forEach((key) => {
+                peers[key].forEach((stream_temp) => {
+                    if (stream_temp.type == "data") {
+                        console.log("sent");
+                        stream_temp.call.send({
+                            userID: myuserId,
+                            remove: true,
+                        });
+                    }
+                });
             });
+
+            // socket.emit("stop-video/-cam-send",{data:})
             // stream.getVideoTracks()[0].enabled = false;
         }
         setVideoButton(videoButton_temp);
@@ -365,12 +516,12 @@ export const PrivateRoom = () => {
                     }}
                 >
                     <div
-                        className="videos row"
+                        className="videos"
                         style={{
                             display: "flex",
                             justifyContent: "center",
                             height: "15%",
-                            flexDirection: "column",
+                            flexDirection: "row",
                         }}
                     ></div>
                     <div className="main-screen row"></div>

@@ -1,6 +1,8 @@
 .message{
     max-width:100%;
     width: auto;
+    word-wrap: break-word;
+    white-space: pre-wrap;
 }
 #chat2 .form-control {
     border-color: transparent;

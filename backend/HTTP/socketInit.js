@@ -44,7 +44,6 @@ function SocketInit(app, server) {
             console.log("roomID : ", roomID, userID);
             socket.join(roomID);
             socket.to(roomID).emit("user-connected", userID);
-            console.log("user came : ", screenShareID);
             if (
                 screenShareID[roomID] != null ||
                 screenShareID[roomID] != undefined
@@ -56,6 +55,11 @@ function SocketInit(app, server) {
                 console.log("disconnected");
                 socket.to(roomID).emit("user-disconnected", userID);
             });
+        });
+        socket.on("start-video-can-again-send", (data) => {
+            socketToRoomChat[data.userID]
+                .to(data.roomID)
+                .emit("start-video-can-again-recv", data);
         });
         socket.on("chat-message-send", (data) => {
             console.log("recieved message : ", data);
