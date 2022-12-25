@@ -12,6 +12,11 @@ const {
    haveCodeforces
 } = require("../../Helpers/Auth/codeforces");
 
+const {
+  getUserOtp,
+  createUserOtp,
+  verifyUserOtp
+} = require("../../DB/models/UserOtp.js");
 
 async function HandleUserRegister(req,res,next) {
   const { 
@@ -108,10 +113,26 @@ async function HandleUserLogout(req, res, next) {
           
 }
 
+async function HandleOtpGeneration(req, res, next) {
+  const { username } = req.body;  
+  console.log('username ', username);
+  const data = await createUserOtp(username);
+  // console.log('otp gen controller: ', data)
+}
+
+async function HandleOtpVerification(req, res, next) {
+  const { username, token } = req.body;
+  console.log('Token: ', token);
+  const {status, message} = await verifyUserOtp(username, token);
+  res.send({ status: status, message: message });
+}
+
 module.exports = {  
   HandleUserLogin, 
   HandleUserRegister, 
   HandleUserRegisterJee,
-  HandleUserLogout
+  HandleUserLogout,
+  HandleOtpVerification,
+  HandleOtpGeneration
 };
 
