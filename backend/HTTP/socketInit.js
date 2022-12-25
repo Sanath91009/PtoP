@@ -15,6 +15,8 @@ function SocketInit(app, server) {
         },
     });
     var socketToRoom = {};
+    var socketToRoomChat = {};
+    var screenShareID = {};
     let user = new Set();
     io.on("connect", (socket) => {
         socket.on("join_room", (data) => {
@@ -42,12 +44,41 @@ function SocketInit(app, server) {
             console.log("roomID : ", roomID, userID);
             socket.join(roomID);
             socket.to(roomID).emit("user-connected", userID);
+            if (
+                screenShareID[roomID] != null ||
+                screenShareID[roomID] != undefined
+            ) {
+                socket.emit("screen-share-recv", screenShareID[roomID]);
+            }
+            socketToRoomChat[userID] = socket;
             socket.on("disconnect", () => {
                 console.log("disconnected");
                 socket.to(roomID).emit("user-disconnected", userID);
             });
         });
-
+        socket.on("start-video-can-again-send", (data) => {
+            socketToRoomChat[data.userID]
+                .to(data.roomID)
+                .emit("start-video-can-again-recv", data);
+        });
+        socket.on("chat-message-send", (data) => {
+            console.log("recieved message : ", data);
+            socketToRoomChat[data.userID]
+                .to(data.roomID)
+                .emit("chat-message-recv", data);
+        });
+        socket.on("screen-share-send", (data) => {
+            console.log("screen-share-send : ", data);
+            screenShareID[data.roomID] = data;
+            socketToRoomChat[data.userID]
+                .to(data.roomID)
+                .emit("screen-share-recv", data);
+        });
+        socket.on("stopped-screen-share-send", (data) => {
+            socketToRoomChat[data.userID]
+                .to(data.roomID)
+                .emit("stopped-screen-share-recv", { userID: data.userID });
+        });
         socket.on("CreateRoom", (data) => {
             let uuid = uuidv4();
             const timestamp = Date.now();
@@ -61,6 +92,11 @@ function SocketInit(app, server) {
                     timestamp: timestamp,
                 });
             }
+        });
+        socket.on("stop-video-cam-send", (data) => {
+            socketToRoomChat[data.userID]
+                .to(data.roomID)
+                .emit("stop-video-cam-recv", data);
         });
         socket.on("random_pairing", async (data) => {
             console.log("random pariing ", data);
