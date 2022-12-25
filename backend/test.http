@@ -1,3 +1,23 @@
+####
+post http://localhost:1337/login/verify
+Content-Type: application/json
+
+{
+    "username":"vivek",
+    "token":"963847"
+}
+
+
+###
+post http://localhost:1337/login/getotp
+Content-Type: application/json
+
+{
+    "username":"vivek"
+}
+
+
+###
 post http://localhost:1337/events/createEvent
 Content-Type: application/json
 
