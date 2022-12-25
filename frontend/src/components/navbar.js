@@ -29,6 +29,28 @@ const Navbar = (props) => {
                                 About
                             </NavLink>
                         </li>
+                        {props.user != null && (
+                            <li className="nav-item">
+                                <NavLink
+                                    className="nav-link active"
+                                    aria-current="page"
+                                    to="/dashboard"
+                                >
+                                    Dashboard
+                                </NavLink>
+                            </li>
+                        )}
+                        {props.user != null && (
+                            <li className="nav-item">
+                                <NavLink
+                                    className="nav-link active"
+                                    aria-current="page"
+                                    to="/Profile"
+                                >
+                                    Profile
+                                </NavLink>
+                            </li>
+                        )}
                     </ul>
                 </div>
             </div>
@@ -40,7 +62,6 @@ const Navbar = (props) => {
                                 className="nav-link active"
                                 aria-current="page"
                                 to="/logout"
-                                state={{ key: props.section }}
                             >
                                 Logout
                             </NavLink>

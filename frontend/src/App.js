@@ -11,7 +11,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Logout from "./components/logout";
 import { GlobalRoom } from "./Views/globalRoom";
 import { PrivateRoom } from "./Views/privateRoom";
-
+import { Profile } from "./Views/profile";
 function App() {
     return (
         <BrowserRouter>
@@ -23,6 +23,7 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/event/Groom" element={<GlobalRoom />} />
                 <Route path="/event/Proom/:id" element={<PrivateRoom />} />
+                <Route path="/profile" element={<Profile />} />
             </Routes>
         </BrowserRouter>
     );

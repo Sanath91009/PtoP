@@ -16,25 +16,22 @@ import { Chatbox } from "../components/chatbox";
 import { v4 as uuidv4 } from "uuid";
 import "../css/Proom.css";
 import userImg from "../images/defaultUser.png";
+import { UserAvatar } from "../components/userAvatar";
 const Windowheight = window.innerHeight;
 export const PrivateRoom = () => {
     const location = useLocation();
     const roomID = location.pathname.split("/").pop();
     const [streamState, setStreamState] = useState();
-    // const streamStateRef
-    // const _setStreamState=(streamState)=>{
-    //     set
-    // }
     const [chat, setChat] = useState(1);
     const [myuserId, setMyUserId] = useState(uuidv4());
-    const [micButton, setMicButton] = useState({
-        className: "btn btn-danger",
-        icon: faMicrophoneSlash,
-    });
     const [screenID, setScreenID] = useState(null);
     const [messages, setMessages] = useState([]);
     const [peers, setPeers] = useState({});
     const [mapper, setMapper] = useState({});
+    const [micButton, setMicButton] = useState({
+        className: "btn btn-danger",
+        icon: faMicrophoneSlash,
+    });
     const [videoButton, setVideoButton] = useState({
         className: "btn btn-danger",
         icon: faVideoSlash,
@@ -49,8 +46,8 @@ export const PrivateRoom = () => {
     const userStreams = {};
     const [screenStream, setScreenStream] = useState(null);
     const [othersScreenShare, setOthersScreenShare] = useState(false);
-    const [usersInRoom, setUsersInRoom] = useState([]);
     const [username, setUsername] = useState("sanath");
+    const [usersInRoom, setUsersInRoom] = useState([{ id: 0, name: username }]);
     const [videoID, setVideoId] = useState(0);
     const setVideoRef = useRef();
     setVideoRef.current = setVideoId;
@@ -70,17 +67,18 @@ export const PrivateRoom = () => {
             peers_temp[userID] = [obj, ...peers_temp[userID]];
         }
         setPeers((prev) => peers_temp);
-        console.log("after adding , ", peers);
     };
+
     const getVideoClass = (userID) => {
         const videoClass = document.querySelector(".videos");
         const myVideo = document.createElement("video");
         const div_wrapper = document.createElement("div");
         div_wrapper.classList.add("videoWrapper");
         div_wrapper.style =
-            "display: flex; justify-content: center; height: 100%;";
+            "display: flex; justify-content: center; height: 100%;width:118px";
         myVideo.classList.add("camVideo");
         myVideo.classList.add(`V${videoID}`);
+        div_wrapper.classList.add(`D${videoID}`);
         const mapper_temp = mapper;
         mapper_temp[userID] = videoID;
         setMapper(() => mapper_temp);
@@ -93,10 +91,13 @@ export const PrivateRoom = () => {
             div_wrapper: div_wrapper,
         };
     };
-
     const getVideoClassRef = useRef();
     getVideoClassRef.current = getVideoClass;
-    console.log("videoID : ", videoID);
+
+    const DataChannelHandler = (conn) => {
+        console.log("conn : ", conn);
+    };
+
     const VideoStreamingInit = async () => {
         var canvas = document.createElement("canvas");
         var canvas_stream = canvas.captureStream(25);
@@ -106,9 +107,7 @@ export const PrivateRoom = () => {
             audio: true,
         });
         stream.getAudioTracks()[0].enabled = false;
-        // stream.getVideoTracks()[0].stop();
         stream.addTrack(canvas_track);
-        // stream.getVideoTracks()[0].stop();
         const elements = getVideoClassRef.current(myuserId);
         setStreamState((prev) => stream);
         addVideoStream(
@@ -116,15 +115,15 @@ export const PrivateRoom = () => {
             elements.div_wrapper,
             elements.MainClass,
             stream,
+            mapper[myuserId],
+            username,
             true
         );
         myPeer.on("call", (call) => {
             call.answer(stream);
             console.log("call answered : ", call.metadata);
             const userID = call.metadata.userID;
-            setUsersInRoom(() => [userID, ...usersInRoom]);
             const Videoelements = getVideoClassRef.current(userID);
-            // const ImgElements = getImgClass();
             call.on("stream", (stream_temp) => {
                 addVideoStream(
                     Videoelements.myEle,
@@ -138,53 +137,63 @@ export const PrivateRoom = () => {
         myPeer.on("connection", function (conn) {
             console.log("opened in answered side...");
             conn.on("open", function () {
+                conn.send({
+                    userID: myuserId,
+                    username: username,
+                    firstMessage: true,
+                });
                 setVideoButton((videoButton) => {
                     if (videoButton["className"] == "btn btn-danger") {
-                        console.log("sending remve");
                         conn.send({
                             userID: myuserId,
                             remove: true,
-                            firstMessage: true,
                         });
-                    } else {
-                        console.log("send first message");
-                        conn.send({ userID: myuserId, firstMessage: true });
                     }
                     return videoButton;
                 });
                 conn.on("data", function (data) {
                     console.log("received from data channel : ", data);
                     if (data.remove != undefined && data.remove == true) {
-                        const video = document.querySelector(
-                            `.V${mapper[data.userID]}`
-                        );
-                        console.log("removing : ", video, video.srcObject);
-                        if (
-                            video.srcObject != null ||
-                            video.srcObject != undefined
-                        ) {
-                            userStreams[data.userID] = video.srcObject;
-                        }
-
-                        video.srcObject = undefined;
-                        video.poster = userImg;
+                        const timer = setTimeout(() => {
+                            const video = document.querySelector(
+                                `.V${mapper[data.userID]}`
+                            );
+                            video.style = "display:none;";
+                            const div = document.querySelector(
+                                `.D${mapper[data.userID]}`
+                            );
+                            div.append(
+                                document.querySelector(
+                                    `.A${mapper[data.userID]}`
+                                )
+                            );
+                        }, 500);
                     }
                     if (data.add != undefined && data.add == true) {
+                        const avat = document.querySelector(
+                            `.A${mapper[data.userID]}`
+                        );
+                        avat.remove();
                         const video = document.querySelector(
                             `.V${mapper[data.userID]}`
                         );
-                        console.log("adding : ", userStreams);
-                        video.srcObject = userStreams[data.userID];
-                        video.poster = userImg;
+                        video.style.display = null;
                     }
-                    if (data.userID != undefined && data.firstMessage == true) {
+                    if (data.firstMessage == true) {
+                        setUsersInRoom((usersInRoom) => {
+                            return [
+                                ...usersInRoom,
+                                {
+                                    id: mapper[data.userID],
+                                    name: data.username,
+                                },
+                            ];
+                        });
                         addToPeers(data.userID, conn, null, "data");
-                        console.log("data");
                     }
                 });
             });
         });
-
         socket.on("screen-share-recv", (data) => {
             console.log("screen share recv : ", data, stream);
             setOthersScreenShare((prev) => true);
@@ -217,6 +226,9 @@ export const PrivateRoom = () => {
         console.log("stream : ", stream.getVideoTracks());
     };
     useEffect(() => {
+        console.log("updated : ", usersInRoom);
+    }, [usersInRoom]);
+    useEffect(() => {
         myPeer.on("open", (id) => {
             console.log("opened : ", id);
             socket.emit("join-room", roomID, id);
@@ -227,7 +239,11 @@ export const PrivateRoom = () => {
             console.log("in handler ...");
             setStreamState((streamState) => {
                 const call = myPeer.call(userID, streamState, {
-                    metadata: { userID: myuserId, replace: false },
+                    metadata: {
+                        userID: myuserId,
+                        replace: false,
+                        username: username,
+                    },
                 });
                 console.log("call when connected user : ", call, streamState);
                 const Videoelements = getVideoClassRef.current(userID);
@@ -245,16 +261,17 @@ export const PrivateRoom = () => {
 
             var conn = myPeer.connect(userID);
             conn.on("open", function () {
-                console.log("opened ", videoButton);
+                conn.send({
+                    userID: myuserId,
+                    username: username,
+                    firstMessage: true,
+                });
                 setVideoButton((videoButton) => {
                     if (videoButton["className"] == "btn btn-danger") {
                         conn.send({
                             userID: myuserId,
                             remove: true,
-                            firstMessage: true,
                         });
-                    } else {
-                        conn.send({ userID: myuserId, firstMessage: true });
                     }
                     return videoButton;
                 });
@@ -265,27 +282,38 @@ export const PrivateRoom = () => {
                             const video = document.querySelector(
                                 `.V${mapper[data.userID]}`
                             );
-                            console.log("removing : ", video, video.srcObject);
-                            if (
-                                video.srcObject != null ||
-                                video.srcObject != undefined
-                            )
-                                userStreams[data.userID] = video.srcObject;
-                            video.srcObject = undefined;
-                            video.poster = userImg;
-                        }, 1000);
+                            video.style = "display:none;";
+                            const div = document.querySelector(
+                                `.D${mapper[data.userID]}`
+                            );
+                            div.append(
+                                document.querySelector(
+                                    `.A${mapper[data.userID]}`
+                                )
+                            );
+                        }, 500);
                     }
                     if (data.add != undefined && data.add == true) {
+                        const avat = document.querySelector(
+                            `.A${mapper[data.userID]}`
+                        );
+                        // avat.remove();
                         const video = document.querySelector(
                             `.V${mapper[data.userID]}`
                         );
-                        console.log("adding : ", userStreams);
-                        video.srcObject = userStreams[data.userID];
-                        video.poster = userImg;
+                        video.style.display = null;
                     }
-                    if (data.userID != undefined && data.firstMessage == true) {
+                    if (data.firstMessage == true) {
+                        setUsersInRoom((usersInRoom) => {
+                            return [
+                                ...usersInRoom,
+                                {
+                                    id: mapper[data.userID],
+                                    name: data.username,
+                                },
+                            ];
+                        });
                         addToPeers(data.userID, conn, null, "data");
-                        console.log("data");
                     }
                 });
             });
@@ -330,18 +358,19 @@ export const PrivateRoom = () => {
         div_wrapper,
         videos_class,
         stream,
+        userID = null,
+        username = null,
         stop = false
     ) => {
-        if (stop == true) {
-            myVideo.srcObject = undefined;
-            myVideo.poster = userImg;
-        } else {
-            myVideo.srcObject = stream;
-        }
+        myVideo.srcObject = stream;
         myVideo.autoPlay = true;
         myVideo.addEventListener("loadedmetadata", () => {
             myVideo.play();
         });
+        if (stop == true) {
+            myVideo.style = "display:none";
+            div_wrapper.append(document.querySelector(".A0"));
+        }
         div_wrapper.append(myVideo);
         videos_class.append(div_wrapper);
     };
@@ -404,9 +433,7 @@ export const PrivateRoom = () => {
             videoButton_temp["icon"] = faVideoSlash;
 
             streamState.getVideoTracks()[0].stop();
-            const myVideo = document.querySelector(".V0");
-            myVideo.srcObject = null;
-            myVideo.poster = userImg;
+
             Object.keys(peers).forEach((key) => {
                 peers[key].forEach((stream_temp) => {
                     if (stream_temp.type == "data") {
@@ -580,6 +607,15 @@ export const PrivateRoom = () => {
                         setMessages={setMessages}
                     />
                 ) : null}
+            </div>
+            <div className="avatars">
+                {usersInRoom.map((a) => {
+                    return (
+                        <div className={`A${a.id}`}>
+                            <UserAvatar name={a.name} />
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

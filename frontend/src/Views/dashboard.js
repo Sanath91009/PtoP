@@ -222,7 +222,6 @@ export const Dashboard = (props) => {
     };
     return (
         <div>
-            <Navbar user={username} section={section} />
             <div className="p-3">
                 <h1>{section}</h1>
                 <h3>Welcome {username} </h3>
