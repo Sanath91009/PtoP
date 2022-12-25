@@ -25,7 +25,7 @@ export const Auth = () => {
         const username = e.target.username.value;
         const email_id = e.target.emailid.value;
         const password = e.target.password.value;
-        const endpoint = config.apiUrl + "/register/jee";
+        const endpoint = config.apiUrl + "/register";
         try {
             await fetch(endpoint, {
                 method: "post",
@@ -40,7 +40,6 @@ export const Auth = () => {
             })
                 .then((response) => response.json())
                 .then((data) => {
-                    console.log("data : ", data);
                     if (data.code == 200) {
                         toast("registered");
                         Login(section, data.token.accessToken);
@@ -61,7 +60,7 @@ export const Auth = () => {
         e.preventDefault();
         const username = e.target.username1.value;
         const password = e.target.password1.value;
-        const endpoint = config.apiUrl + "/login/jee";
+        const endpoint = config.apiUrl + "/login";
         try {
             await fetch(endpoint, {
                 method: "post",
@@ -136,12 +135,14 @@ export const Auth = () => {
                                     placeholder="Password"
                                 />
                             </div>
-                            <button
-                                type="submit"
-                                className="btn btn-primary mt-2"
-                            >
-                                Register
-                            </button>
+                            <div className="text-center">
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary mt-2"
+                                >
+                                    Register
+                                </button>
+                            </div>
                         </form>
                     </div>
                     <div className="vr" style={{ width: 1, padding: 0 }}></div>
@@ -167,12 +168,14 @@ export const Auth = () => {
                                     placeholder="Password"
                                 />
                             </div>
-                            <button
-                                type="submit"
-                                className="btn btn-primary mt-2"
-                            >
-                                Login
-                            </button>
+                            <div className="text-center">
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary mt-2"
+                                >
+                                    Login
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

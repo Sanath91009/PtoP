@@ -1,0 +1,14 @@
+.camVideo{
+    border-radius: 10px; 
+    overflow: hidden; 
+}
+.ScreenShare{
+    height: 100%;
+    width: 100%;
+}
+.main-screen{
+    height: 75%;
+    overflow: hidden;
+    background-color: grey;
+    border-radius: 20px;
+}
