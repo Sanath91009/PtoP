@@ -1,8 +1,13 @@
 import React from "react";
 
-export const HandleForm = ({ onSubmit }) => {
+export const HandleForm = ({ onSubmit, section }) => {
     return (
-        <form className="px-3" onSubmit={onSubmit}>
+        <form
+            className="px-3"
+            onSubmit={(e) =>
+                onSubmit(section, e.target.username.value, e.target.email.value)
+            }
+        >
             <div className="form-group mb-2">
                 <label for="Handle">Handle</label>
                 <input

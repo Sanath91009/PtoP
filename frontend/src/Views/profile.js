@@ -3,6 +3,7 @@ import Navbar from "../components/navbar";
 import { PorfileInfo } from "../components/profileInfo";
 import { UserAvatar } from "../components/userAvatar";
 import { getUser } from "../services/authService";
+import config from "../config.json";
 function randomColor() {
     let hex = Math.floor(Math.random() * 0xffffff);
     let color = "#" + hex.toString(16);
@@ -18,7 +19,37 @@ export const Profile = () => {
         "atcoder",
         "leetcode",
     ]);
-
+    const [verified, setVerfied] = useState({});
+    useEffect(() => {}, []);
+    const HandleSubmit = async (section, handle, email) => {
+        const endpoint = config.apiUrl + "/auth/" + section;
+        try {
+            await fetch(endpoint, {
+                method: "post",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    handle: handle,
+                    email_id: email,
+                    section: section,
+                }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.code == 200) {
+                        const verified_temp = { ...verified };
+                        verified_temp[section] = true;
+                        setVerfied(verified_temp);
+                        toast(`${section} authenitcated`);
+                    } else {
+                        toast.error(`Authentication for ${section} failed`);
+                    }
+                });
+        } catch (err) {
+            toast.error(`Authentication for ${section} failed`);
+        }
+    };
     const c = randomColor();
     return (
         <div style={{ height: "100%" }}>
@@ -55,7 +86,12 @@ export const Profile = () => {
                     <div id="accordion">
                         {sections &&
                             sections.map((section) => {
-                                return <PorfileInfo section={section} />;
+                                return (
+                                    <PorfileInfo
+                                        section={section}
+                                        HandleSubmit={HandleSubmit}
+                                    />
+                                );
                             })}
                     </div>
                 </div>

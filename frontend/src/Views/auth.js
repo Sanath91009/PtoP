@@ -11,6 +11,7 @@ export const Auth = () => {
     const location = useLocation();
     const { section } = location.state;
     const navigate = useNavigate();
+    const [opt, setOtp] = useState(false);
     useEffect(() => {
         if (getUser(section) != null) {
             const { username } = getUser(section);
@@ -22,42 +23,70 @@ export const Auth = () => {
     });
     const HandleRegister = async (e) => {
         e.preventDefault();
-        const username = e.target.username.value;
-        const email_id = e.target.emailid.value;
-        const password = e.target.password.value;
-        const endpoint = config.apiUrl + "/register";
-        try {
-            await fetch(endpoint, {
-                method: "post",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    username: username,
-                    email_id: email_id,
-                    password: password,
-                }),
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (data.code == 200) {
-                        toast("registered");
-                        Login(section, data.token.accessToken);
-                        navigate("/dashboard", {
-                            replace: true,
-                            state: { section: section, username: username },
-                        });
-                    } else {
-                        console.log(data.message);
-                        toast(data.message);
-                    }
-                });
-        } catch (err) {
-            toast(err);
+        if (otp == false) {
+            const endpoint = config.apiUrl + "/register/generateOtp";
+            try {
+                await fetch(endpoint, {
+                    method: "post",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                    }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.code == 200) {
+                            setOtp(() => true);
+                        } else {
+                            console.log(data.message);
+                            toast.error(data.message);
+                        }
+                    });
+            } catch (err) {
+                toast.error(err);
+            }
+        } else {
+            const username = e.target.username.value;
+            const email_id = e.target.emailid.value;
+            const password = e.target.password.value;
+            const otp = e.target.otp.value;
+            const endpoint = config.apiUrl + "/register/verifyOtp";
+            try {
+                await fetch(endpoint, {
+                    method: "post",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        otp: otp,
+                        addInfo: {
+                            type: "registration",
+                            pwd: password,
+                            emailID: email_id,
+                        },
+                    }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.code == 200) {
+                            toast("registered");
+                            Login("token", data.token.accessToken);
+                            navigate("/dashboard", {
+                                replace: true,
+                            });
+                        }
+                    });
+            } catch (err) {
+                toast.error(err);
+            }
         }
     };
     const HandleLogin = async (e) => {
         e.preventDefault();
+
         const username = e.target.username1.value;
         const password = e.target.password1.value;
         const endpoint = config.apiUrl + "/login";
@@ -135,12 +164,24 @@ export const Auth = () => {
                                     placeholder="Password"
                                 />
                             </div>
+                            {otp == true && (
+                                <div className="form-group mb-2">
+                                    <label for="otp">otp</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        id="otp"
+                                        aria-describedby="otp"
+                                        placeholder="Enter otp"
+                                    />
+                                </div>
+                            )}
                             <div className="text-center">
                                 <button
                                     type="submit"
                                     className="btn btn-primary mt-2"
                                 >
-                                    Register
+                                    {otp && otp == false ? "Register" : "Enter"}
                                 </button>
                             </div>
                         </form>

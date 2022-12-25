@@ -1,25 +1,19 @@
 const { Router } = require("express");
 const {
-    HandleUserRegister,
     HandleUserLogin,
     HandleUserLogout,
     HandleOtpVerification,
-    HandleOtpGeneration
-} = require('../Controllers/Auth/userController');
-
+    HandleOtpGeneration,
+    getHandlesInfoController,
+} = require("../Controllers/Auth/userController");
 
 const authRouter = Router();
 
-authRouter.post("/register", HandleUserRegisterJee);
 authRouter.post("/login", HandleUserLogin);
 authRouter.get("/logout", HandleUserLogout);
 
+authRouter.post("/register/verifyOtp", HandleOtpVerification);
+authRouter.post("/register/generateOtp", HandleOtpGeneration);
+authRouter.get("/getHandlesInfo", getHandlesInfoController);
 
-authRouter.post('/login/verify', HandleOtpVerification);
-authRouter.post('/login/getotp', HandleOtpGeneration);
-authRouter.get('/logout/cf',HandleUserLogout);
-
-
- 
 module.exports = authRouter;
-

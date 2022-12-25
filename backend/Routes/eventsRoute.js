@@ -1,13 +1,9 @@
 const { Router } = require("express");
 const {
-    getEventsBySectionController,
+    getEventsController,
     createEventController,
-    getQuestionsByIdController,
-    calculateScoreController,
     registerCandidate,
     deregisterCandidate,
-    updateScore,
-    getScoreController,
     getCandidatesByIdController,
     addRequestController,
     addRoomLinkController,
@@ -15,15 +11,11 @@ const {
 
 const eventsRouter = Router();
 
-eventsRouter.post("/getEvents", getEventsBySectionController);
-eventsRouter.get("/getQuestions", getQuestionsByIdController);
-eventsRouter.post("/getCandidates", getCandidatesByIdController);
-eventsRouter.post("/calculateScore", calculateScoreController);
-eventsRouter.post("/getScore", getScoreController);
-eventsRouter.post("/addRequest", addRequestController);
+eventsRouter.get("/getEvents", getEventsController);
 eventsRouter.post("/createEvent", createEventController);
-eventsRouter.post("/register", registerCandidate);
-eventsRouter.post("/deregister", deregisterCandidate);
-eventsRouter.post("/updateScore", updateScore);
-eventsRouter.post("/addRoomLink", addRoomLinkController);
+eventsRouter.get("/event/getCandidates", getCandidatesByIdController);
+eventsRouter.post("/event/addRequest", addRequestController);
+eventsRouter.post("/event/register", registerCandidate);
+eventsRouter.post("/event/deregister", deregisterCandidate);
+eventsRouter.post("/event/addRoomLink", addRoomLinkController);
 module.exports = eventsRouter;

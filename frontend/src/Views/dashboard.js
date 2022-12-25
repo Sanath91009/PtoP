@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/navbar";
 import { toast } from "react-toastify";
 import Countdown from "react-countdown";
+import { getUser } from "../services/authService";
 function compare(a, b) {
     if (a.date < b.date) {
         return -1;
@@ -12,21 +13,12 @@ function compare(a, b) {
 }
 export const Dashboard = (props) => {
     const [events, setEvents] = useState();
-    const location = useLocation();
+    const [username, setUsername] = useState(getUser("token"));
     const navigate = useNavigate();
-    const { section, username } = location.state;
     var score = null;
-    const endPoint = config["apiUrl"] + "/events/getEvents";
     useEffect(() => {
-        fetch(endPoint, {
-            method: "post",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                section: section,
-            }),
-        })
+        const endPoint = config["apiUrl"] + "/getEvents";
+        fetch(endPoint)
             .then((response) => response.json())
             .then((data) => {
                 const events = data.data;
@@ -79,7 +71,7 @@ export const Dashboard = (props) => {
         var event_cur = null;
         console.log("eventID : ", eventID);
         for (let i = 0; i < events.length; i++) {
-            if (events[i]._id === eventID) {
+            if (events[i].id === eventID) {
                 event_cur = events[i];
                 break;
             }
@@ -143,7 +135,7 @@ export const Dashboard = (props) => {
                             event_cur.showButton = "Registered";
                             event_cur.classNameButton = "btn btn-info";
                             for (let i = 0; i < events_temp.length; i++) {
-                                if (events_temp[i]._id === event_cur._id) {
+                                if (events_temp[i].id === event_cur.id) {
                                     events_temp[i] = event_cur;
                                     break;
                                 }
@@ -167,7 +159,7 @@ export const Dashboard = (props) => {
                             event_cur.showButton = "Register";
                             event_cur.classNameButton = "btn btn-primary";
                             for (let i = 0; i < events_temp.length; i++) {
-                                if (events_temp[i]._id === event_cur._id) {
+                                if (events_temp[i].id === event_cur.id) {
                                     events_temp[i] = event_cur;
                                     break;
                                 }
@@ -204,7 +196,7 @@ export const Dashboard = (props) => {
     const HandleCompletion = (eventID) => {
         const events_temp = [...events];
         for (let i = 0; i < events_temp.length; i++) {
-            if (events_temp[i]._id === eventID) {
+            if (events_temp[i].id === eventID) {
                 if (
                     events_temp[i].showButton == "Register" ||
                     events_temp[i].showButton == "Event Started"
@@ -246,13 +238,13 @@ export const Dashboard = (props) => {
                                                 intervalDelay={0}
                                                 precision={3}
                                                 onComplete={() =>
-                                                    HandleCompletion(event._id)
+                                                    HandleCompletion(event.id)
                                                 }
                                             />
                                             <br></br>
                                             <button
                                                 onClick={() =>
-                                                    HandleClick(event._id)
+                                                    HandleClick(event.id)
                                                 }
                                                 className={
                                                     event.classNameButton

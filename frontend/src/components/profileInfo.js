@@ -27,7 +27,7 @@ export const PorfileInfo = (props) => {
                 data-bs-parent="#accordion"
             >
                 <div class="card-body">
-                    <HandleForm onSubmit={HandleSubmit} />
+                    <HandleForm onSubmit={HandleSubmit} section={section} />
                 </div>
             </div>
         </div>
