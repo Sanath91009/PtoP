@@ -22,12 +22,13 @@ function createToken(payload, secret, options) {
 function signAccessToken(userData) {
     const payload = {
         username: userData.username,
-        email: userData.email_id,
+        email: userData.emailId,
+        color: userData.color,
     };
     const secret = AT_DURATION.AT_SECRET_KEY;
     const options = {
         expiresIn: AT_DURATION.msformat,
-        issuer: "hackathon",
+        issuer: "P2P",
     };
 
     return createToken(payload, secret, options);

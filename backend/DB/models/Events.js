@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { ObjectId } = require("mongodb");
 
 const EventsSchema = new mongoose.Schema({
     name: {
@@ -18,8 +17,19 @@ const EventsSchema = new mongoose.Schema({
         required: true,
     },
     dependent: {
-        type: String,
-        required: false,
+        questions: [
+            {
+                code: {
+                    type: String,
+                },
+                name: {
+                    type: String,
+                },
+            },
+        ],
+        contestInfo: {
+            type: String,
+        },
     },
     candidatesInfo: [
         {
@@ -27,52 +37,48 @@ const EventsSchema = new mongoose.Schema({
                 type: String,
                 required: true,
             },
-            score: {
-                type: Number,
+            handle: {
+                type: String,
                 required: true,
+            },
+            solved: [
+                {
+                    type: String,
+                },
+            ],
+            rating: {
+                type: Number,
             },
             requests: [
                 {
-                    username: {
+                    handle: {
                         type: String,
                         required: true,
                     },
-                    score: {
+                    rating: {
                         type: Number,
-                        required: true,
                     },
+                    solved: [
+                        {
+                            type: String,
+                        },
+                    ],
                 },
             ],
             requestsSent: [
                 {
-                    username: {
+                    handle: {
                         type: String,
                         required: true,
                     },
-                    score: {
+                    rating: {
                         type: Number,
-                        required: true,
                     },
-                },
-            ],
-            roomLinks: [
-                {
-                    uuid: {
-                        type: String,
-                        required: true,
-                    },
-                    username: {
-                        type: String,
-                        required: true,
-                    },
-                    score: {
-                        type: String,
-                        required: true,
-                    },
-                    timestamp: {
-                        type: Number,
-                        required: true,
-                    },
+                    solved: [
+                        {
+                            type: String,
+                        },
+                    ],
                 },
             ],
         },
@@ -80,64 +86,133 @@ const EventsSchema = new mongoose.Schema({
 });
 const Events = mongoose.model("Events", EventsSchema);
 
-async function createEvent(
-    name,
-    date,
-    section,
-    dependent = [],
-    candidatesInfo = []
-) {
+async function createEvent(name, date, section, dependent, candidatesInfo) {
+    let id = await Events.countDocuments({});
+    id += 1;
+    console.log("dependent : ", dependent);
     const res = await Events.create({
         name: name,
         date: date,
         section: section,
         dependent: dependent,
-        id: 1 + Events.count(),
+        id: id,
         candidatesInfo: candidatesInfo,
     });
     return res;
 }
-async function addRequest(eventID, username_b, score_b, username_a, score_a) {
+async function addRequest(
+    eventID,
+    handle_b,
+    solved_b,
+    rating_b,
+    handle_a,
+    solved_a,
+    rating_a
+) {
+    console.log(
+        eventID,
+        handle_b,
+        solved_b,
+        rating_b,
+        handle_a,
+        solved_a,
+        rating_a
+    );
     const data = await Events.updateOne(
-        { id: eventID, "candidatesInfo.username": username_b },
+        { id: eventID, "candidatesInfo.handle": handle_b },
         {
             $push: {
                 "candidatesInfo.$.requests": {
-                    username: username_a,
-                    score: score_a,
+                    handle: handle_a,
+                    solved: solved_a,
+                    rating: rating_a,
                 },
             },
         }
     );
     const res = await Events.updateOne(
-        { id: eventID, "candidatesInfo.username": username_a },
+        { id: eventID, "candidatesInfo.handle": handle_a },
         {
             $push: {
                 "candidatesInfo.$.requestsSent": {
-                    username: username_b,
-                    score: score_b,
+                    handle: handle_b,
+                    solved: solved_b,
+                    rating: rating_b,
                 },
             },
         }
     );
     return data;
 }
-async function getEvents() {
-    const data = await Events.find();
+async function getQuestions(eventID) {
+    console.log("eventID :", eventID);
+    const data = await Events.find({ id: eventID }).select(
+        "dependent.questions"
+    );
+    if (data == null) {
+        return null;
+    }
+    return data[0]["dependent"];
+}
+async function getEvents(username) {
+    console.log("username : ", username);
+    const data = await Events.find().select({
+        name: true,
+        date: true,
+        id: true,
+        section: true,
+        candidatesInfo: { $elemMatch: { username: username } },
+    });
+    console.log("data : ", data);
     return data;
 }
-
-async function getCandidatesById(examId) {
+async function getEventById(id) {
+    const data = await Events.find({ id: id });
+    if (!data || data.length == 0) return null;
+    console.log("data[0 : ", data[0]);
+    return data[0];
+}
+async function getCandidatesById(eventID) {
     const { candidatesInfo } = await Events.findOne({
-        id: new ObjectId(examId),
-    });
+        id: eventID,
+    }).select(
+        "candidatesInfo.handle candidatesInfo.solved candidatesInfo.rating"
+    );
     return candidatesInfo;
 }
-
-async function addCandidate(eventID, username) {
+async function getSectionByID(eventID) {
+    const { section } = await Events.findOne({ id: eventID });
+    return section;
+}
+async function getEventsInfoOfCandidate(eventID, username) {
+    const { candidatesInfo } = await Events.findOne({
+        id: eventID,
+    }).select({ candidatesInfo: { $elemMatch: { username: username } } });
+    return candidatesInfo;
+}
+async function addCandidate(
+    eventID,
+    handle,
+    username,
+    solved,
+    rating,
+    requests = [],
+    requestsSent = []
+) {
     const res = await Events.updateOne(
         { id: eventID },
-        { $push: { candidatesInfo: { username: username } } }
+        {
+            $push: {
+                candidatesInfo: {
+                    handle: handle,
+                    username: username,
+                    solved: solved,
+                    rating: rating,
+                    requests: requests,
+                    requestsSent: requestsSent,
+                },
+            },
+        }
     );
     return res;
 }
@@ -149,50 +224,6 @@ async function removeCandidate(eventID, username) {
     return res;
 }
 
-async function addRoomLink(
-    eventID,
-    username_a,
-    score_a,
-    username_b,
-    score_b,
-    uuid,
-    timestamp
-) {
-    const res = await Events.updateOne(
-        {
-            id: eventID,
-            "candidatesInfo.username": username_a,
-        },
-        {
-            $push: {
-                "candidatesInfo.$.roomLinks": {
-                    username: username_b,
-                    score: score_b,
-                    uuid: uuid,
-                    timestamp: timestamp,
-                },
-            },
-        }
-    );
-    const res1 = await Events.updateOne(
-        {
-            id: eventID,
-            "candidatesInfo.username": username_b,
-        },
-        {
-            $push: {
-                "candidatesInfo.$.roomLinks": {
-                    username: username_a,
-                    score: score_a,
-                    uuid: uuid,
-                    timestamp: timestamp,
-                },
-            },
-        }
-    );
-    return res;
-}
-
 module.exports = {
     getEvents,
     createEvent,
@@ -200,5 +231,8 @@ module.exports = {
     removeCandidate,
     getCandidatesById,
     addRequest,
-    addRoomLink,
+    getEventsInfoOfCandidate,
+    getEventById,
+    getSectionByID,
+    getQuestions,
 };

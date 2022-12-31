@@ -2,13 +2,17 @@ const express = require("express");
 const xss = require("xss-clean");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
+const helmet = require("helmet");
+const morgan = require("morgan");
 const cors = require("cors");
 
 function ServerInit(conf) {
     const app = express();
     app.use(cors({ credentials: true, origin: true }));
     app.use(xss());
-    app.use;
+    app.use(helmet());
+    app.use(bodyParser.json());
+    app.use(morgan("combined"));
 
     app.use((req, res, next) => {
         res.setHeader("X-Powered-By", "Java Spring");

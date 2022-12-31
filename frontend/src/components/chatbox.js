@@ -21,26 +21,13 @@ export const Chatbox = (props) => {
         roomID,
         setChat,
         setChatButton,
-        username,
+        handle,
         userID,
         messages,
         setMessages,
     } = props;
     const [text, setText] = useState("");
     const refState = useRef(null);
-    useEffect(() => {
-        socket.on("chat-message-recv", (data) => {
-            if (data.username == username) return;
-            setMessages((prev) => [
-                ...prev,
-                {
-                    username: data.username,
-                    message: data.message,
-                    timestamp: data.timestamp,
-                },
-            ]);
-        });
-    }, []);
     const scrollToBottom = () => {
         if (refState == null) return;
         refState.current.scrollIntoView();
@@ -68,14 +55,14 @@ export const Chatbox = (props) => {
         const timestamp = Date.now();
         socket.emit("chat-message-send", {
             roomID: roomID,
-            username: "hi",
+            handle: handle,
             message: text,
             userID: userID,
             timestamp: timestamp,
         });
         const messages_temp = [...messages];
         messages_temp.push({
-            username: username,
+            handle: handle,
             message: text,
             timestamp: timestamp,
         });
@@ -136,7 +123,7 @@ export const Chatbox = (props) => {
                         >
                             {messages &&
                                 messages.map((m, index) => {
-                                    return m.username === username ? (
+                                    return m.handle === handle ? (
                                         <div className="d-flex flex-row justify-content-end ">
                                             <div>
                                                 <p
@@ -146,15 +133,17 @@ export const Chatbox = (props) => {
                                                     {m.message}
                                                 </p>
                                                 {index + 1 == messages.length ||
-                                                (messages[index + 1]
-                                                    .username === m.username &&
+                                                (messages[index + 1].handle ===
+                                                    m.handle &&
                                                     changeTimeFormat(
                                                         messages[index + 1]
                                                             .timestamp
                                                     ) !==
                                                         changeTimeFormat(
                                                             m.timestamp
-                                                        )) ? (
+                                                        )) ||
+                                                messages[index + 1].handle !=
+                                                    m.handle ? (
                                                     <p
                                                         class="small rounded-3 text-muted d-flex justify-content-end"
                                                         style={{ margin: 0 }}
@@ -170,10 +159,10 @@ export const Chatbox = (props) => {
                                         <div className="d-flex flex-row justify-content-start ">
                                             <div>
                                                 {index == 0 ||
-                                                messages[index - 1].username !=
-                                                    m.username ? (
+                                                messages[index - 1].handle !=
+                                                    m.handle ? (
                                                     <p class="small rounded-3 m-0 d-flex justify-content-start">
-                                                        {m.username}
+                                                        {m.handle}
                                                     </p>
                                                 ) : null}
                                                 <p
@@ -183,15 +172,17 @@ export const Chatbox = (props) => {
                                                     {m.message}
                                                 </p>
                                                 {index + 1 == messages.length ||
-                                                (messages[index + 1]
-                                                    .username === m.username &&
+                                                (messages[index + 1].handle ===
+                                                    m.handle &&
                                                     changeTimeFormat(
                                                         messages[index + 1]
                                                             .timestamp
                                                     ) !==
                                                         changeTimeFormat(
                                                             m.timestamp
-                                                        )) ? (
+                                                        )) ||
+                                                messages[index + 1].handle !=
+                                                    m.handle ? (
                                                     <p
                                                         class="small rounded-3 text-muted d-flex justify-content-start"
                                                         style={{ margin: 0 }}

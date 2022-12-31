@@ -1,0 +1,121 @@
+:root {
+    --font-color: #333;
+    --background-color: rgb(248, 248, 248);
+    --link-color: cornflowerblue;
+  }
+  
+[data-theme="dark"] {
+  --font-color: #eee;
+  --rev-font-color:#333;
+  --background-color: #333;
+  --link-color: peachpuff;
+  --forEvents:#ffffff;
+}
+[data-theme="light"]{
+  --forEvents:#333;
+}
+/* 3 */
+html body .home h3{
+  color: var(--font-color);
+}
+html body .form-group{
+  color: var(--font-color);
+}
+html body .card{
+  color:var(--rev-font-color);
+}
+html body .dark{
+  color: var(--font-color);
+}
+html body .filter p{
+  color: var(--font-color);
+}
+html body .filter label{
+  color: var(--font-color);
+}
+html body {
+  background-color: var(--background-color);
+}
+html body .dashboard h3{
+  color: var(--font-color);
+}
+html body .navbar .container-fluid .navbar-brand{
+  color: var(--font-color);
+}
+html body .navbar .container-fluid .navbar-nav .nav-link.active, .navbar-nav .show>.nav-link{
+  color: var(--font-color);
+}
+html body .random{
+  color: var(--font-color);
+}
+html body #nav-requests{
+  color: var(--font-color);
+}
+html body form{
+  color:var(--font-color)
+}
+html body .profile h3{
+  color:var(--font-color)
+}
+html body .authenticateForm{
+  background-color: var(--background-color);
+}
+.toggle-theme-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.toggle-theme-wrapper span {
+  font-size: 28px;
+}
+
+.toggle-theme {
+  position: relative;
+  display: inline-block;
+  height: 25px;
+  width: 55px;
+}
+
+.toggle-theme input {
+  display: none;
+}
+
+.slider {
+  background-color: #ccc;
+  position: absolute;
+  cursor: pointer;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  transition: 0.2s;
+}
+
+.slider:before {
+  background-color: #fff;
+  bottom: 3px;
+  content: "";
+  height: 20px;
+  left: 4px;
+  position: absolute;
+  transition: 0.4s;
+  width: 20px;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+input:checked + .slider {
+  background-color: cornflowerblue;
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}

@@ -1,14 +1,37 @@
 import React from "react";
 import { HandleForm } from "./handleForm";
-
+import { faCopy, faCheckCircle } from "@fortawesome/free-regular-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useState, useEffect } from "react";
 export const PorfileInfo = (props) => {
-    const { section, HandleSubmit } = props;
+    const {
+        section,
+        HandleSubmit,
+        handle,
+        otp,
+        setOtp,
+        fullName,
+        resendOtp,
+        setResendOtp,
+    } = props;
+    const [copied, setCopied] = useState(false);
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            if (copied) setCopied(false);
+        }, 1000);
+
+        return () => clearTimeout(timeout);
+    }, [copied]);
     return (
-        <div class="card">
-            <div class="card-header" id={section}>
-                <h5 class="mb-0">
+        <div className="card">
+            <div className="card-header" id={section}>
+                <h5 className="mb-0">
                     <button
-                        class="btn btn-danger collapsed"
+                        className={
+                            handle == undefined
+                                ? "btn btn-danger collapsed"
+                                : "btn btn-success collapsed"
+                        }
                         data-bs-toggle="collapse"
                         data-bs-target={`#Collapse${section}`}
                         aria-expanded="false"
@@ -22,13 +45,69 @@ export const PorfileInfo = (props) => {
 
             <div
                 id={`Collapse${section}`}
-                class="collapse"
+                className="collapse authenticateForm"
                 aria-labelledby={section}
                 data-bs-parent="#accordion"
             >
-                <div class="card-body">
-                    <HandleForm onSubmit={HandleSubmit} section={section} />
-                </div>
+                {handle == undefined ? (
+                    section == "codechef" ? (
+                        <div className="card-body">
+                            <div className="form-group mb-2">
+                                <label htmlFor="Handle">Handle</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    id="codechefHandle"
+                                    aria-describedby="Handle"
+                                    placeholder="Enter Handle"
+                                />
+                            </div>
+                            <p className="dark">
+                                Please change your full name in codechef to{" "}
+                                <span style={{ fontSize: "20px" }}>
+                                    {" "}
+                                    <b>{fullName} </b>{" "}
+                                </span>
+                                {copied == false ? (
+                                    <FontAwesomeIcon
+                                        icon={faCopy}
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(
+                                                fullName
+                                            );
+                                            setCopied(true);
+                                        }}
+                                    />
+                                ) : (
+                                    <FontAwesomeIcon icon={faCheckCircle} K />
+                                )}{" "}
+                                for authentication
+                            </p>
+                            <button
+                                className="btn btn-primary"
+                                onClick={HandleSubmit}
+                            >
+                                Enter after changing your name
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="card-body">
+                            <HandleForm
+                                HandleSubmit={HandleSubmit}
+                                section={section}
+                                otp={otp}
+                                setOtp={setOtp}
+                                resendOtp={resendOtp}
+                                setResendOtp={setResendOtp}
+                            />
+                        </div>
+                    )
+                ) : (
+                    <div className="card-body">
+                        <p className="dark">Handle : {handle}</p>
+                    </div>
+                )}
             </div>
         </div>
     );

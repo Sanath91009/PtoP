@@ -12,18 +12,20 @@ function compare(a, b) {
     return 1;
 }
 export const Dashboard = (props) => {
-    const [events, setEvents] = useState();
-    const [username, setUsername] = useState(getUser("token"));
+    const [events, setEvents] = useState([]);
+    const [username, setUsername] = useState(getUser("token").username);
     const navigate = useNavigate();
     var score = null;
     useEffect(() => {
-        const endPoint = config["apiUrl"] + "/getEvents";
-        fetch(endPoint)
+        console.log("username : ", username);
+        const endPoint = config["apiUrl"] + "/getEvents?username=" + username;
+        fetch(endPoint, {
+            headers: { authorization: localStorage.getItem("token") },
+        })
             .then((response) => response.json())
             .then((data) => {
                 const events = data.data;
                 events.sort(compare);
-
                 for (let i = 0; i < events.length; i++) {
                     let reg = false;
 
@@ -31,18 +33,7 @@ export const Dashboard = (props) => {
                         events[i].candidatesInfo &&
                         events[i].candidatesInfo.length
                     ) {
-                        for (
-                            let j = 0;
-                            j < events[i].candidatesInfo.length;
-                            j++
-                        ) {
-                            if (
-                                events[i].candidatesInfo[j].username ===
-                                username
-                            ) {
-                                reg = true;
-                            }
-                        }
+                        reg = true;
                     }
                     if (events[i].date + config.duration < Date.now()) {
                         events[i].showButton = "Completed";
@@ -64,62 +55,23 @@ export const Dashboard = (props) => {
                         }
                     }
                 }
+
                 setEvents(events);
             });
     }, []);
-    const HandleClick = (eventID) => {
-        var event_cur = null;
-        console.log("eventID : ", eventID);
-        for (let i = 0; i < events.length; i++) {
-            if (events[i].id === eventID) {
-                event_cur = events[i];
-                break;
-            }
-        }
+    const HandleClick = (event_cur) => {
         if (
             event_cur.showButton == "Register" ||
             event_cur.showButton == "Registered"
         ) {
-            if (event_cur.date <= Date.now()) {
+            if (event_cur.date < Date.now()) {
                 return;
             }
-            if (
-                event_cur.type == "discussion" &&
-                event_cur.dependent !== undefined &&
-                event_cur.dependent !== null
-            ) {
-                var cur_dep = event_cur.dependent;
-                if (cur_dep == "codeforces") {
-                } else if (cur_dep == "codechef") {
-                } else {
-                    const endpoint = config["apiUrl"] + "/events/getScore";
-                    fetch(endpoint, {
-                        method: "post",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            username: username,
-                            eventID: eventID,
-                        }),
-                    })
-                        .then((response) => response.json())
-                        .then((data) => {
-                            if (data.message == null) {
-                                toast(
-                                    "this is disucssion event (only for those who attended corresponding exam event)"
-                                );
-                                return;
-                            } else {
-                                score = data.message;
-                            }
-                        });
-                }
-            }
             try {
+                document.querySelector(`.B${event_cur.id}`).disabled = true;
                 const events_temp = [...events];
                 if (event_cur.showButton !== "Registered") {
-                    const endpoint = config["apiUrl"] + "/events/register";
+                    const endpoint = config["apiUrl"] + "/event/register";
                     fetch(endpoint, {
                         method: "post",
                         headers: {
@@ -127,23 +79,43 @@ export const Dashboard = (props) => {
                         },
                         body: JSON.stringify({
                             username: username,
-                            eventID: eventID,
+                            eventID: event_cur.id,
+                            section: event_cur.section,
                         }),
                     })
                         .then((response) => response.json())
                         .then((data) => {
-                            event_cur.showButton = "Registered";
-                            event_cur.classNameButton = "btn btn-info";
-                            for (let i = 0; i < events_temp.length; i++) {
-                                if (events_temp[i].id === event_cur.id) {
-                                    events_temp[i] = event_cur;
-                                    break;
+                            console.log("response : ", data);
+                            if (data.code == 400) {
+                                toast.error(
+                                    `please authentuicate your ${event_cur.section} handle`
+                                );
+                                navigate("/profile");
+                            } else {
+                                if (data.code == 200) {
+                                    event_cur.showButton = "Registered";
+                                    event_cur.classNameButton = "btn btn-info";
+                                    for (
+                                        let i = 0;
+                                        i < events_temp.length;
+                                        i++
+                                    ) {
+                                        if (
+                                            events_temp[i].id === event_cur.id
+                                        ) {
+                                            events_temp[i] = event_cur;
+                                            break;
+                                        }
+                                    }
+                                    setEvents(events_temp);
                                 }
                             }
-                            setEvents(events_temp);
+                            document.querySelector(
+                                `.B${event_cur.id}`
+                            ).disabled = false;
                         });
                 } else {
-                    const endpoint = config["apiUrl"] + "/events/deregister";
+                    const endpoint = config["apiUrl"] + "/event/deregister";
                     fetch(endpoint, {
                         method: "post",
                         headers: {
@@ -151,7 +123,8 @@ export const Dashboard = (props) => {
                         },
                         body: JSON.stringify({
                             username: username,
-                            eventID: eventID,
+                            eventID: event_cur.id,
+                            section: event_cur.section,
                         }),
                     })
                         .then((response) => response.json())
@@ -165,6 +138,9 @@ export const Dashboard = (props) => {
                                 }
                             }
                             setEvents(events_temp);
+                            document.querySelector(
+                                `.B${event_cur.id}`
+                            ).disabled = false;
                         });
                 }
             } catch (err) {
@@ -172,25 +148,7 @@ export const Dashboard = (props) => {
                 toast(err);
             }
         } else if (event_cur.showButton == "Join") {
-            if (event_cur.type == "exam") {
-                navigate("/event/exam", {
-                    state: {
-                        eventID: eventID,
-                        username: username,
-                        section: section,
-                        score: score,
-                    },
-                });
-            } else {
-                navigate("/event/Groom", {
-                    state: {
-                        eventID: eventID,
-                        username: username,
-                        section: section,
-                        score: score,
-                    },
-                });
-            }
+            navigate(`/${event_cur.id}/Groom`);
         }
     };
     const HandleCompletion = (eventID) => {
@@ -214,22 +172,28 @@ export const Dashboard = (props) => {
     };
     return (
         <div>
-            <div className="p-3">
-                <h1>{section}</h1>
+            <Navbar user={username} />
+            <div className="dashboard p-3">
                 <h3>Welcome {username} </h3>
-                <p>
-                    By entering into lobby you will be registetred for
-                    discussion, you can wait to enter into discussion platform
-                    or you can check your mail inbox for the invitation link to
-                    meet your peer
-                </p>
-                <div className="row">
-                    {events &&
+                <div className="d-flex flex-row row">
+                    {events.length > 0 &&
                         events.map((event, index) => {
                             return (
                                 event.showButton != "Completed" && (
-                                    <div className="card col-sm-3" key={index}>
-                                        <div className="card-body text-center">
+                                    <div
+                                        className="card m-2"
+                                        style={{
+                                            width: "240px",
+                                            height: "240px",
+                                        }}
+                                        key={index}
+                                    >
+                                        <div className="card-body text-center my-auto">
+                                            <img
+                                                src={require("../images/codeforces.jpeg")}
+                                                width={"200px"}
+                                                height="100px"
+                                            ></img>
                                             <h5 className="card-title">
                                                 {event.name}
                                             </h5>
@@ -244,11 +208,9 @@ export const Dashboard = (props) => {
                                             <br></br>
                                             <button
                                                 onClick={() =>
-                                                    HandleClick(event.id)
+                                                    HandleClick(event)
                                                 }
-                                                className={
-                                                    event.classNameButton
-                                                }
+                                                className={`${event.classNameButton} B${event.id}`}
                                             >
                                                 {event.showButton}
                                             </button>

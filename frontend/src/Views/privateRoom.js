@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
 import io from "socket.io-client";
 import Peer from "peerjs";
-import config from "../config.json";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
     faMicrophone,
     faMicrophoneSlash,
@@ -14,20 +13,32 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Chatbox } from "../components/chatbox";
 import { v4 as uuidv4 } from "uuid";
-import "../css/Proom.css";
+import config from "../config.json";
 import userImg from "../images/defaultUser.png";
 import { UserAvatar } from "../components/userAvatar";
+import { ReactComponent as Hangup } from "../images/hangup.svg";
+import { ReactComponent as ScreenShare } from "../images/screenShare.svg";
+import { getUser } from "../services/authService";
+import { SocketContext } from "../context/socket";
+import "../css/Proom.css";
+
 const Windowheight = window.innerHeight;
+
 export const PrivateRoom = () => {
-    const location = useLocation();
-    const roomID = location.pathname.split("/").pop();
-    const [streamState, setStreamState] = useState();
-    const [chat, setChat] = useState(1);
-    const [myuserId, setMyUserId] = useState(uuidv4());
-    const [screenID, setScreenID] = useState(null);
+    const [chat, setChat] = useState(0);
+    const { roomID, eventID } = useParams();
+    const [myInfo, setMyInfo] = useState(null);
     const [messages, setMessages] = useState([]);
-    const [peers, setPeers] = useState({});
-    const [mapper, setMapper] = useState({});
+    const [usersInRoom, setUsersInRoom] = useState([]);
+    const [CurVideoID, setCurVideoID] = useState(0);
+    const [newMessage, setNewMessage] = useState(0);
+    const socket = useContext(SocketContext);
+    const [myUserID, setMyUserID] = useState(uuidv4());
+    const [usersVideoStatus, setUsersVideoStatus] = useState({});
+    const [myPeer, setMyPeer] = useState();
+    const [screenStream, setScreenStream] = useState(null);
+    const [othersScreenShare, setOthersScreenShare] = useState(null);
+    const [streamState, setStreamState] = useState();
     const [micButton, setMicButton] = useState({
         className: "btn btn-danger",
         icon: faMicrophoneSlash,
@@ -37,168 +48,282 @@ export const PrivateRoom = () => {
         icon: faVideoSlash,
     });
     const [chatButton, setChatButton] = useState({
-        icon: faComment,
-        className: "btn btn-dark",
+        icon: faCommentSlash,
+        className: "btn btn-danger",
     });
     const [screenButton, setScreenButton] = useState({
-        className: "btn btn-secondary",
+        className: "btn btn-dark",
     });
-    const userStreams = {};
-    const [screenStream, setScreenStream] = useState(null);
-    const [othersScreenShare, setOthersScreenShare] = useState(false);
-    const [username, setUsername] = useState("sanath");
-    const [usersInRoom, setUsersInRoom] = useState([{ id: 0, name: username }]);
-    const [videoID, setVideoId] = useState(0);
-    const setVideoRef = useRef();
-    setVideoRef.current = setVideoId;
-    const socket = io.connect(config.apiUrl);
-    const myPeer = new Peer(myuserId);
-
-    const addToPeers = (userID, call, videoCard, type = "normal") => {
-        const obj = {
-            call: call,
-            videoCard: videoCard,
-            type: type,
-        };
-        const peers_temp = peers;
-        if (peers_temp[userID] === undefined) {
-            peers_temp[userID] = [obj];
-        } else {
-            peers_temp[userID] = [obj, ...peers_temp[userID]];
-        }
-        setPeers((prev) => peers_temp);
-    };
+    const navigate = useNavigate();
+    console.log("myUserId : ", myUserID);
 
     const getVideoClass = (userID) => {
+        console.log("creating video class : ", userID, CurVideoID);
         const videoClass = document.querySelector(".videos");
         const myVideo = document.createElement("video");
         const div_wrapper = document.createElement("div");
         div_wrapper.classList.add("videoWrapper");
         div_wrapper.style =
-            "display: flex; justify-content: center; height: 100%;width:118px";
+            "display: flex; justify-content: center; height: 100%;width:130px";
         myVideo.classList.add("camVideo");
-        myVideo.classList.add(`V${videoID}`);
-        div_wrapper.classList.add(`D${videoID}`);
-        const mapper_temp = mapper;
-        mapper_temp[userID] = videoID;
-        setMapper(() => mapper_temp);
-        setVideoId((videoID) => {
-            return videoID + 1;
+        myVideo.classList.add(`V${CurVideoID}`);
+        div_wrapper.classList.add(`D${CurVideoID}`);
+        myVideo.style = "display:none;margin:5px";
+        div_wrapper.append(myVideo);
+        videoClass.append(div_wrapper);
+        // mapperRef.current[userID] = CurVideoID;
+        setCurVideoID((CurVideoID) => {
+            return CurVideoID + 1;
         });
+        console.log("adding : ", myVideo);
         return {
             MainClass: videoClass,
             myEle: myVideo,
             div_wrapper: div_wrapper,
+            videoID: CurVideoID,
         };
     };
     const getVideoClassRef = useRef();
     getVideoClassRef.current = getVideoClass;
-
-    const DataChannelHandler = (conn) => {
-        console.log("conn : ", conn);
-    };
-
-    const VideoStreamingInit = async () => {
+    const VideoStreamingInit = async (myInfo) => {
         var canvas = document.createElement("canvas");
         var canvas_stream = canvas.captureStream(25);
         var canvas_track = canvas_stream.getTracks()[0];
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: true,
+        console.log(canvas_stream.getTracks());
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: false,
+                audio: true,
+            });
+            stream.getAudioTracks()[0].enabled = false;
+            stream.addTrack(canvas_track);
+            const elements = getVideoClassRef.current(myUserID);
+            elements.myEle.srcObject = stream;
+            elements.myEle.autoPlay = true;
+            elements.myEle.addEventListener("loadedmetadata", () => {
+                elements.myEle.play();
+            });
+            elements.myEle.style.display = "none";
+            setStreamState(stream);
+            const videoID = elements.videoID;
+            setUsersInRoom((usersInRoom) => [
+                ...usersInRoom,
+                { ...myInfo, videoID: videoID },
+            ]);
+            const temp = {};
+            temp[videoID] = 0;
+            setUsersVideoStatus((usersVideoStatus) => {
+                return { ...usersVideoStatus, ...temp };
+            });
+        } catch (err) {
+            alert(`${err}.Enable access`);
+        }
+    };
+    useEffect(() => {
+        console.log("usersvideo status changed : ", usersVideoStatus);
+        Object.keys(usersVideoStatus).map((k, index) => {
+            const b = usersVideoStatus[k];
+            console.log(" k : ", k, b);
+            if (b == 0) {
+                const avat = document.querySelector(`.A${k}`);
+                if (avat) {
+                    const div_wrapper = document.querySelector(`.D${k}`);
+                    div_wrapper.append(avat);
+                }
+            } else {
+                const video = document.querySelector(`.V${k}`);
+                if (video) {
+                    video.style.display = null;
+                }
+            }
         });
-        stream.getAudioTracks()[0].enabled = false;
-        stream.addTrack(canvas_track);
-        const elements = getVideoClassRef.current(myuserId);
-        setStreamState((prev) => stream);
-        addVideoStream(
-            elements.myEle,
-            elements.div_wrapper,
-            elements.MainClass,
-            stream,
-            mapper[myuserId],
-            username,
-            true
-        );
+    }, [usersVideoStatus]);
+    useEffect(() => {
+        console.log("users In room changed..");
+    }, [usersInRoom]);
+    const UserConnectedHandler = (data) => {
+        const elements = getVideoClassRef.current(data.userID);
+        console.log("when calling : ", streamState.getTracks());
+        const call = myPeer.call(data.userID, streamState, {
+            metadata: {
+                userID: myInfo.userID,
+                handle: myInfo.handle,
+                color: myInfo.color,
+                videoOn: videoButton.className == "btn btn-dark",
+            },
+        });
+        console.log("new user came : ", data.userID, myInfo, elements.videoID);
+        const videoID = elements.videoID;
+        setUsersInRoom((usersInRoom) => [
+            ...usersInRoom,
+            {
+                userID: data.userID,
+                videoID: videoID,
+                handle: data.handle,
+                color: data.color,
+                call: call,
+            },
+        ]);
+        const temp = {};
+        temp[videoID] = 0;
+        setUsersVideoStatus((usersVideoStatus) => {
+            return { ...usersVideoStatus, ...temp };
+        });
+        call.on("stream", (stream) => {
+            console.log("call started...");
+            elements.myEle.srcObject = stream;
+            elements.myEle.autoPlay = true;
+            elements.myEle.addEventListener("loadedmetadata", () => {
+                elements.myEle.play();
+            });
+        });
+    };
+    useEffect(() => {
+        if (myInfo != null) return;
+        const data = getUser("token");
+        if (data == null) {
+            navigate("/");
+        } else {
+            const endpoint =
+                config.apiUrl +
+                `/room/getHandleFromRoom?username=${data.username}&eventID=${eventID}&roomID=${roomID}`;
+            fetch(endpoint)
+                .then((response) => response.json())
+                .then((res) => {
+                    if (res.code == 200) {
+                        const myInfo = {
+                            handle: res.handle,
+                            color: data.color,
+                            userID: myUserID,
+                        };
+                        VideoStreamingInit(myInfo);
+                        setMyInfo(myInfo);
+                    } else {
+                        navigate("/");
+                    }
+                });
+        }
+    }, []);
+    useEffect(() => {
+        if (myInfo == null) return;
+        if (!streamState) return;
+        const myPeer = new Peer(myUserID);
+        setMyPeer(myPeer);
+        myPeer.on("open", (userID) => {
+            console.log("peer connected : ", userID);
+            socket.emit("join-room", {
+                roomID: roomID,
+                userID: userID,
+                handle: myInfo.handle,
+                color: myInfo.color,
+            });
+        });
+    }, [myInfo, streamState]);
+    useEffect(() => {
+        console.log("useEffect called....", streamState);
+        if (myPeer == null) return;
         myPeer.on("call", (call) => {
-            call.answer(stream);
-            console.log("call answered : ", call.metadata);
-            const userID = call.metadata.userID;
-            const Videoelements = getVideoClassRef.current(userID);
-            call.on("stream", (stream_temp) => {
-                addVideoStream(
-                    Videoelements.myEle,
-                    Videoelements.div_wrapper,
-                    Videoelements.MainClass,
-                    stream_temp
-                );
+            console.log("streamState when ansewering : ", streamState);
+            call.answer(streamState);
+            const { userID, handle, color, videoOn } = call.metadata;
+            const elements = getVideoClassRef.current(userID);
+            console.log("call came : ", call.metadata.userID, elements.videoID);
+            const videoID = elements.videoID;
+            setUsersInRoom((usersInRoom) => [
+                ...usersInRoom,
+                {
+                    userID: userID,
+                    videoID: videoID,
+                    handle: handle,
+                    color: color,
+                    call: call,
+                },
+            ]);
+            if (videoOn == true) {
+                const temp = {};
+                temp[videoID] = 1;
+                setUsersVideoStatus((usersVideoStatus) => {
+                    return { ...usersVideoStatus, ...temp };
+                });
+            } else {
+                const temp = {};
+                temp[videoID] = 0;
+                setUsersVideoStatus((usersVideoStatus) => {
+                    return { ...usersVideoStatus, ...temp };
+                });
+            }
+            call.on("stream", (stream) => {
+                console.log("call startedd....");
+                elements.myEle.srcObject = stream;
+                elements.myEle.autoPlay = true;
+                elements.myEle.addEventListener("loadedmetadata", () => {
+                    elements.myEle.play();
+                });
             });
-            addToPeers(userID, call, Videoelements.div_wrapper);
         });
-        myPeer.on("connection", function (conn) {
-            console.log("opened in answered side...");
-            conn.on("open", function () {
-                conn.send({
-                    userID: myuserId,
-                    username: username,
-                    firstMessage: true,
-                });
-                setVideoButton((videoButton) => {
-                    if (videoButton["className"] == "btn btn-danger") {
-                        conn.send({
-                            userID: myuserId,
-                            remove: true,
-                        });
-                    }
-                    return videoButton;
-                });
-                conn.on("data", function (data) {
-                    console.log("received from data channel : ", data);
-                    if (data.remove != undefined && data.remove == true) {
-                        const timer = setTimeout(() => {
-                            const video = document.querySelector(
-                                `.V${mapper[data.userID]}`
-                            );
-                            video.style = "display:none;";
-                            const div = document.querySelector(
-                                `.D${mapper[data.userID]}`
-                            );
-                            div.append(
-                                document.querySelector(
-                                    `.A${mapper[data.userID]}`
-                                )
-                            );
-                        }, 500);
-                    }
-                    if (data.add != undefined && data.add == true) {
-                        const avat = document.querySelector(
-                            `.A${mapper[data.userID]}`
-                        );
-                        avat.remove();
-                        const video = document.querySelector(
-                            `.V${mapper[data.userID]}`
-                        );
-                        video.style.display = null;
-                    }
-                    if (data.firstMessage == true) {
-                        setUsersInRoom((usersInRoom) => {
-                            return [
-                                ...usersInRoom,
-                                {
-                                    id: mapper[data.userID],
-                                    name: data.username,
-                                },
-                            ];
-                        });
-                        addToPeers(data.userID, conn, null, "data");
-                    }
-                });
-            });
+    }, [myPeer, CurVideoID, streamState, screenStream]);
+    useEffect(() => {
+        socket.on("user-connected", (data) => UserConnectedHandler(data));
+        socket.on("user-disconnected", (userID) => {
+            console.log("disconnected...", userID, usersInRoom);
+            if (userID == myInfo.userID) {
+                HandleEndCall();
+                return;
+            }
+            for (let i = 0; i < usersInRoom.length; i++) {
+                if (usersInRoom[i].userID == userID) {
+                    console.log("cideoID : ", usersInRoom[i].videoID);
+                    usersInRoom[i].call.close();
+                    const id = usersInRoom[i].videoID;
+                    document.querySelector(`.D${id}`).remove();
+                }
+            }
+            if (othersScreenShare && othersScreenShare["userID"] == userID) {
+                othersScreenShare["call"].close();
+                setOthersScreenShare(null);
+                document.querySelector(".ScreenShare").remove();
+            }
+        });
+        socket.on("start-video-cam-again-recv", (data) => {
+            console.log("start video cam");
+            for (let i = 0; i < usersInRoom.length; i++) {
+                if (usersInRoom[i].userID == data.userID) {
+                    let id = usersInRoom[i].videoID;
+                    document.querySelector(`.V${id}`).style.display = null;
+                    document
+                        .querySelector(".avatars")
+                        .append(document.querySelector(`.A${id}`));
+                    const temp = {};
+                    temp[id] = 1;
+                    setUsersVideoStatus((usersVideoStatus) => {
+                        return { ...usersVideoStatus, ...temp };
+                    });
+                    break;
+                }
+            }
+        });
+        socket.on("stop-video-cam-recv", (data) => {
+            console.log("stop video cam");
+            for (let i = 0; i < usersInRoom.length; i++) {
+                if (usersInRoom[i].userID == data.userID) {
+                    let id = usersInRoom[i].videoID;
+                    document.querySelector(`.V${id}`).style =
+                        "display:none;margin:5px";
+                    document
+                        .querySelector(`.D${id}`)
+                        .append(document.querySelector(`.A${id}`));
+                    const temp = {};
+                    temp[id] = 0;
+                    setUsersVideoStatus((usersVideoStatus) => {
+                        return { ...usersVideoStatus, ...temp };
+                    });
+                    break;
+                }
+            }
         });
         socket.on("screen-share-recv", (data) => {
-            console.log("screen share recv : ", data, stream);
-            setOthersScreenShare((prev) => true);
-            const call = myPeer.call(data.screenuuid, stream, {
-                metadata: { username: myuserId },
+            const call = myPeer.call(data.screenuuid, streamState, {
+                metadata: { userID: myInfo.userID },
             });
             const screen_class = document.querySelector(".main-screen");
             const screenPart = document.createElement("video");
@@ -210,170 +335,52 @@ export const PrivateRoom = () => {
                     screenPart.play();
                 });
                 screen_class.append(screenPart);
-                addToPeers(data.userID, call, screenPart, "screen");
             });
+            setOthersScreenShare({ call: call, userID: data.userID });
         });
-        socket.on("stopped-screen-share-recv", () => {
-            console.log("screen sharing stopped ", othersScreenShare);
-            const screenPart = document.querySelector(".ScreenShare");
-            screenPart.remove();
-            setOthersScreenShare(() => false);
+        socket.on("stopped-screen-share-recv", (data) => {
+            const { call } = othersScreenShare;
+            call.close();
+            document.querySelector(".ScreenShare").remove();
+            setOthersScreenShare(null);
         });
-        socket.on("stop-video-cam-recv", (data) =>
-            stopVideoCamHandlerRef.current(data)
-        );
-
-        console.log("stream : ", stream.getVideoTracks());
-    };
-    useEffect(() => {
-        console.log("updated : ", usersInRoom);
-    }, [usersInRoom]);
-    useEffect(() => {
-        myPeer.on("open", (id) => {
-            console.log("opened : ", id);
-            socket.emit("join-room", roomID, id);
-        });
-        VideoStreamingInit();
-
-        const handler = (userID) => {
-            console.log("in handler ...");
-            setStreamState((streamState) => {
-                const call = myPeer.call(userID, streamState, {
-                    metadata: {
-                        userID: myuserId,
-                        replace: false,
-                        username: username,
-                    },
-                });
-                console.log("call when connected user : ", call, streamState);
-                const Videoelements = getVideoClassRef.current(userID);
-                call.on("stream", (stream_temp) => {
-                    addVideoStream(
-                        Videoelements.myEle,
-                        Videoelements.div_wrapper,
-                        Videoelements.MainClass,
-                        stream_temp
-                    );
-                });
-                addToPeers(userID, call, Videoelements.div_wrapper);
-                return streamState;
-            });
-
-            var conn = myPeer.connect(userID);
-            conn.on("open", function () {
-                conn.send({
-                    userID: myuserId,
-                    username: username,
-                    firstMessage: true,
-                });
-                setVideoButton((videoButton) => {
-                    if (videoButton["className"] == "btn btn-danger") {
-                        conn.send({
-                            userID: myuserId,
-                            remove: true,
-                        });
-                    }
-                    return videoButton;
-                });
-                conn.on("data", function (data) {
-                    console.log("received from data channel : ", data);
-                    if (data.remove != undefined && data.remove == true) {
-                        const timer = setTimeout(() => {
-                            const video = document.querySelector(
-                                `.V${mapper[data.userID]}`
-                            );
-                            video.style = "display:none;";
-                            const div = document.querySelector(
-                                `.D${mapper[data.userID]}`
-                            );
-                            div.append(
-                                document.querySelector(
-                                    `.A${mapper[data.userID]}`
-                                )
-                            );
-                        }, 500);
-                    }
-                    if (data.add != undefined && data.add == true) {
-                        const avat = document.querySelector(
-                            `.A${mapper[data.userID]}`
-                        );
-                        // avat.remove();
-                        const video = document.querySelector(
-                            `.V${mapper[data.userID]}`
-                        );
-                        video.style.display = null;
-                    }
-                    if (data.firstMessage == true) {
-                        setUsersInRoom((usersInRoom) => {
-                            return [
-                                ...usersInRoom,
-                                {
-                                    id: mapper[data.userID],
-                                    name: data.username,
-                                },
-                            ];
-                        });
-                        addToPeers(data.userID, conn, null, "data");
-                    }
-                });
-            });
-
-            addToPeers(userID, conn, null, "data");
-        };
-        socket.on("user-connected", handler);
-        return () => socket.off("user-connected", handler);
-    }, []);
-    useEffect(() => {
-        socket.on("user-disconnected", (userID) => {
-            console.log("user disconnedted : ", userID);
-            console.log("peers : ", peers[userID]);
-            peers[userID].forEach((stream) => {
-                deleteStream(stream);
-            });
-
-            delete peers[userID];
-        });
-    }, [socket]);
-    const deleteStream = (stream) => {
-        if (stream.videoCard) stream.videoCard.remove();
-        stream.call.close();
-        if (stream.type == "screen") {
-            setOthersScreenShare(() => false);
-        }
-    };
-    const stopVideoCamHandler = (data) => {
-        console.log("video closing : ", data);
-        peers[data.userID].forEach((stream) => {
-            if (stream.type == "normal") {
-                stream.videoCard.childNodes[0].srcObject = undefined;
-                stream.videoCard.childNodes[0].poster = userImg;
+        socket.on("chat-message-recv", (data) => {
+            if (data.handle == myInfo.handle) return;
+            if (chat == 0) {
+                setNewMessage((prev) => prev + 1);
+            } else {
+                setNewMessage(0);
             }
+            setMessages((prev) => [
+                ...prev,
+                {
+                    handle: data.handle,
+                    message: data.message,
+                    timestamp: data.timestamp,
+                },
+            ]);
         });
-    };
-    const stopVideoCamHandlerRef = useRef();
-    stopVideoCamHandlerRef.current = stopVideoCamHandler;
-
-    const addVideoStream = (
-        myVideo,
-        div_wrapper,
-        videos_class,
-        stream,
-        userID = null,
-        username = null,
-        stop = false
-    ) => {
-        myVideo.srcObject = stream;
-        myVideo.autoPlay = true;
-        myVideo.addEventListener("loadedmetadata", () => {
-            myVideo.play();
-        });
-        if (stop == true) {
-            myVideo.style = "display:none";
-            div_wrapper.append(document.querySelector(".A0"));
-        }
-        div_wrapper.append(myVideo);
-        videos_class.append(div_wrapper);
-    };
+        return () => {
+            socket.off("user-connected");
+            socket.off("user-disconnected");
+            socket.off("start-video-cam-again-recv");
+            socket.off("stop-video-cam-recv");
+            socket.off("screen-share-recv");
+            socket.off("stopped-screen-share-recv");
+            socket.off("chat-message-recv");
+        };
+    }, [
+        socket,
+        myPeer,
+        myInfo,
+        CurVideoID,
+        streamState,
+        usersInRoom,
+        screenStream,
+        othersScreenShare,
+        videoButton,
+        chat,
+    ]);
 
     const HandleMicButton = () => {
         const micButton_temp = { ...micButton };
@@ -391,67 +398,73 @@ export const PrivateRoom = () => {
     };
     const HandleVideoButton = () => {
         const videoButton_temp = { ...videoButton };
+        let id;
+        for (let i = 0; i < usersInRoom.length; i++) {
+            if (usersInRoom[i].userID == myUserID) {
+                id = usersInRoom[i].videoID;
+            }
+        }
         if (videoButton_temp["className"] == "btn btn-danger") {
             videoButton_temp["className"] = "btn btn-dark";
             videoButton_temp["icon"] = faVideoCamera;
-            const streamState_temp = streamState;
             if (streamState.getVideoTracks().length > 0)
-                streamState_temp.removeTrack(streamState.getVideoTracks()[0]);
+                streamState.removeTrack(streamState.getVideoTracks()[0]);
             navigator.mediaDevices
                 .getUserMedia({
                     video: true,
                 })
                 .then((stream) => {
-                    streamState_temp.addTrack(stream.getVideoTracks()[0]);
-                    setScreenStream(streamState_temp);
-                    const myVideo = document.querySelector(".V0");
-                    myVideo.poster = undefined;
-                    myVideo.srcObject = stream;
-                    Object.keys(peers).forEach((key) => {
-                        peers[key].forEach((stream_temp) => {
-                            if (stream_temp.type == "normal") {
-                                console.log(
-                                    "sflsdlf : ",
-                                    stream_temp.call.peerConnection.getSenders()
-                                );
-                                stream_temp.call.peerConnection
-                                    .getSenders()[1]
-                                    .replaceTrack(stream.getVideoTracks()[0]);
-                            }
-                            if (stream_temp.type == "data") {
-                                console.log("sent data");
-                                stream_temp.call.send({
-                                    userID: myuserId,
-                                    add: true,
-                                });
-                            }
-                        });
+                    streamState.addTrack(stream.getVideoTracks()[0]);
+                    setStreamState(streamState);
+
+                    const myVideo = document.querySelector(`.V${id}`);
+                    const avat = document.querySelector(`.A${id}`);
+                    document.querySelector(".avatars").append(avat);
+                    myVideo.style.display = null;
+                    console.log("usersINRoom : ", usersInRoom);
+                    for (let i = 0; i < usersInRoom.length; i++) {
+                        if (usersInRoom[i].call) {
+                            console.log("replcaing.... ", usersInRoom[i]);
+                            usersInRoom[i].call.peerConnection
+                                .getSenders()[1]
+                                .replaceTrack(stream.getVideoTracks()[0]);
+                        }
+                    }
+                    const temp = {};
+                    temp[id] = 1;
+                    setUsersVideoStatus((usersVideoStatus) => {
+                        return { ...usersVideoStatus, ...temp };
                     });
+                    socket.emit("start-video-cam-again-send", {
+                        userID: myUserID,
+                        roomID: roomID,
+                    });
+                })
+                .catch((err) => {
+                    alert(`${err}.Enable access`);
                 });
         } else {
             videoButton_temp["className"] = "btn btn-danger";
             videoButton_temp["icon"] = faVideoSlash;
-
             streamState.getVideoTracks()[0].stop();
-
-            Object.keys(peers).forEach((key) => {
-                peers[key].forEach((stream_temp) => {
-                    if (stream_temp.type == "data") {
-                        console.log("sent");
-                        stream_temp.call.send({
-                            userID: myuserId,
-                            remove: true,
-                        });
-                    }
-                });
+            const video = document.querySelector(`.V${id}`);
+            video.style = "display:none;";
+            const div = document.querySelector(`.D${id}`);
+            div.append(document.querySelector(`.A${id}`));
+            socket.emit("stop-video-cam-send", {
+                roomID: roomID,
+                userID: myUserID,
             });
-
-            // socket.emit("stop-video/-cam-send",{data:})
-            // stream.getVideoTracks()[0].enabled = false;
+            const temp = {};
+            temp[id] = 0;
+            setUsersVideoStatus((usersVideoStatus) => {
+                return { ...usersVideoStatus, ...temp };
+            });
         }
         setVideoButton(videoButton_temp);
     };
     const HandleChatbutton = () => {
+        setNewMessage(0);
         if (chat == 0) {
             setChat(1);
             setChatButton({
@@ -469,9 +482,9 @@ export const PrivateRoom = () => {
     };
     const HandleScreenShareButton = async () => {
         console.log("others : ", othersScreenShare);
-        if (othersScreenShare === true) {
+        if (othersScreenShare) {
             return;
-        } else if (screenID == null) {
+        } else if (screenButton.className == "btn btn-dark") {
             console.log("creating...");
             const screenuuid = uuidv4();
             const screenPeer = new Peer(screenuuid);
@@ -493,8 +506,7 @@ export const PrivateRoom = () => {
                 .then((ScreenStream) => {
                     socket.emit("screen-share-send", {
                         screenuuid: screenuuid,
-                        username: username,
-                        userID: myuserId,
+                        userID: myInfo.userID,
                         roomID: roomID,
                     });
                     screenPart.srcObject = ScreenStream;
@@ -503,11 +515,13 @@ export const PrivateRoom = () => {
                         screenPart.play();
                     });
                     setScreenButton({ className: "btn btn-danger" });
-                    setScreenID(() => screenuuid);
                     screenPeer.on("call", (call) => {
                         call.answer(ScreenStream);
                     });
                     setScreenStream(() => ScreenStream);
+                })
+                .catch((err) => {
+                    alert(`${err}.Enable access`);
                 });
         } else {
             console.log("closing : ", screenStream);
@@ -515,13 +529,31 @@ export const PrivateRoom = () => {
             await screenStream.getTracks().forEach((track) => track.stop());
             screenPart.remove();
             setScreenStream(null);
-            setScreenID(null);
             socket.emit("stopped-screen-share-send", {
                 roomID: roomID,
-                userID: myuserId,
+                userID: myUserID,
             });
-            setScreenButton({ className: "btn btn-secondary" });
+            setScreenButton({ className: "btn btn-dark" });
         }
+    };
+    const HandleEndCall = () => {
+        if (screenStream) {
+            screenStream.getTracks().forEach(function (track) {
+                track.stop();
+            });
+        }
+        if (streamState) {
+            streamState.getTracks().forEach(function (track) {
+                track.stop();
+            });
+        }
+        socket.disconnect();
+        for (let i = 0; i < usersInRoom.length; i++) {
+            if (usersInRoom[i].userID != myInfo.userID) {
+                usersInRoom[i].call.close();
+            }
+        }
+        navigate("/dashboard");
     };
     return (
         <div
@@ -543,7 +575,7 @@ export const PrivateRoom = () => {
                     }}
                 >
                     <div
-                        className="videos"
+                        className="videos m-3"
                         style={{
                             display: "flex",
                             justifyContent: "center",
@@ -551,46 +583,66 @@ export const PrivateRoom = () => {
                             flexDirection: "row",
                         }}
                     ></div>
-                    <div className="main-screen row"></div>
-                    <div className="row justify-content-md-center row-cols-auto position-absolute bottom-0 start-50 translate-middle">
-                        <div className="col">
+                    <div className="main-screen row mx-4 my-2 p-2"></div>
+                    <div
+                        className="row justify-content-md-center row-cols-auto position-absolute start-50 translate-middle"
+                        style={{ bottom: -25 }}
+                    >
+                        <div className="col p-1">
                             <button
                                 className={`${micButton.className} rounded-5`}
                                 onClick={() => HandleMicButton()}
-                                style={{ fontSize: 25 }}
+                                style={{ fontSize: 20 }}
                             >
                                 <FontAwesomeIcon icon={micButton.icon} />
                             </button>
                         </div>
-                        <div className="col">
+                        <div className="col p-1">
                             <button
                                 className={`${videoButton.className} rounded-5`}
                                 onClick={() => HandleVideoButton()}
-                                style={{ fontSize: 25 }}
+                                style={{ fontSize: 20 }}
                             >
                                 <FontAwesomeIcon icon={videoButton.icon} />
                             </button>
                         </div>
-                        <div className="col">
+                        <div className="col p-1">
                             <button
                                 className={`${chatButton.className} rounded-5`}
                                 onClick={() => HandleChatbutton()}
-                                style={{ fontSize: 25 }}
+                                style={{ fontSize: 20 }}
                             >
                                 <FontAwesomeIcon icon={chatButton.icon} />
+                                {newMessage > 0 ? (
+                                    <span
+                                        class="position-absolute px-2 translate-middle bg-primary border border-dark rounded-circle"
+                                        style={{
+                                            padding: "3px",
+                                            left: "58%",
+                                            fontSize: "10px",
+                                            color: "#fff",
+                                            top: "6px",
+                                        }}
+                                    >
+                                        {newMessage}
+                                    </span>
+                                ) : null}
                             </button>
                         </div>
-                        <div className="col">
+                        <div className="col p-1">
                             <button
                                 className={`${screenButton.className} rounded-5`}
                                 onClick={() => HandleScreenShareButton()}
-                                style={{ marginBottom: -28 }}
                             >
-                                <img
-                                    width={33}
-                                    height={33}
-                                    src={require("../images/screenShare.png")}
-                                />
+                                <ScreenShare width={20} height={30} />
+                            </button>
+                        </div>
+                        <div className="col p-1">
+                            <button
+                                className={"btn btn-danger rounded-5"}
+                                onClick={() => HandleEndCall()}
+                            >
+                                <Hangup width={20} height={30} />
                             </button>
                         </div>
                     </div>
@@ -601,21 +653,27 @@ export const PrivateRoom = () => {
                         setChat={setChat}
                         socket={socket}
                         setChatButton={setChatButton}
-                        username={username}
-                        userID={myuserId}
+                        handle={myInfo.handle}
+                        userID={myUserID}
                         messages={messages}
                         setMessages={setMessages}
                     />
                 ) : null}
             </div>
-            <div className="avatars">
-                {usersInRoom.map((a) => {
-                    return (
-                        <div className={`A${a.id}`}>
-                            <UserAvatar name={a.name} />
-                        </div>
-                    );
-                })}
+            <div className="avatars" style={{ display: "none" }}>
+                {usersInRoom.length > 0 &&
+                    usersInRoom.map((a, index) => {
+                        console.log("a : ", a);
+                        return (
+                            <div className={`A${a.videoID} mx-2`} key={index}>
+                                <UserAvatar
+                                    name={a.handle}
+                                    color={a.color}
+                                    showName={true}
+                                />
+                            </div>
+                        );
+                    })}
             </div>
         </div>
     );

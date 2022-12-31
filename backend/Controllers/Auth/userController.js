@@ -2,7 +2,7 @@ const {
     createUser,
     getUser,
     getHandlesInfo,
-    addHandlesInfo,
+    addHandleInfo,
 } = require("../../DB/models/User.js");
 
 const {
@@ -12,12 +12,8 @@ const {
 
 const { haveCodeforces } = require("../../Helpers/Auth/codeforces");
 
-const {
-    getUserOtp,
-    createUserOtp,
-    verifyUserOtp,
-    deleteUserOtp,
-} = require("../../DB/models/UserOtp.js");
+const { createNewOTP, verifyOTP } = require("../../DB/models/UserOtp.js");
+const { checkUser } = require("../../WebScrapping/codechef.js");
 
 function HandleUserLogin(req, res, next) {
     checkIfLogin(req.cookies.__AT__)
@@ -45,31 +41,30 @@ async function HandleUserLogout(req, res, next) {
 }
 
 async function HandleOtpGeneration(req, res, next) {
-    const { username } = req.body;
-    console.log("username ", username);
+    const { emailid } = req.body;
     try {
-        const data = await createUserOtp(username);
-        res.send({ code: 200, message: "generated successfully" });
+        const data = await createNewOTP(emailid);
+        res.send({ code: 200, message: "generated successfully", hash: data });
     } catch (err) {
         next(err);
     }
 }
 
 async function HandleOtpVerification(req, res, next) {
-    const { username, otp, addInfo } = req.body;
-    console.log("otp: ", otp);
+    const { otp, addInfo, username, hash } = req.body;
+    console.log("otp: ", otp, addInfo);
     try {
-        const { status, message } = await verifyUserOtp(username, otp);
+        const { emailid, pwd } = addInfo;
+        const { status, message } = await verifyOTP(emailid, hash, otp);
+        console.log("message : ", message);
         if (status == 200) {
-            await deleteUserOtp(username);
             if (addInfo.type == "registration") {
-                const { emailID, pwd } = addInfo;
                 const result = await getUser(username);
                 if (result != undefined && result != null) {
                     res.send({ code: 400, message: "User already registered" });
                 } else {
-                    const color = await createUser(username, emailID, pwd);
-                    performLogin(res, username, password)
+                    const color = await createUser(username, emailid, pwd);
+                    performLogin(res, username, pwd)
                         .then((token) => {
                             res.send({
                                 code: 200,
@@ -83,19 +78,68 @@ async function HandleOtpVerification(req, res, next) {
                         });
                 }
             } else {
-                const { handle, section } = addInfo;
-                await addHandlesInfo(username, handle, section);
-                res.send({ code: 200, message: "verified" });
+                const { handle, section, emailid } = addInfo;
+                console.log("handle : ", handle, emailid);
+                if (section == "codeforces") {
+                    haveCodeforces(handle, emailid)
+                        .then(async (data) => {
+                            console.log("data : ", data);
+                            if (data.code == 200) {
+                                await addHandleInfo(
+                                    username,
+                                    handle,
+                                    "codeforces"
+                                );
+                            }
+                            res.send(data);
+                        })
+                        .catch((err) => {
+                            res.send({
+                                data: 404,
+                                message: "codeforces site is down",
+                            });
+                            next(err);
+                        });
+                } else if (section == "atcoder") {
+                } else if ((section = "leetcode")) {
+                }
             }
         } else {
-            res.send({ code: 400, message: message });
+            res.send({ code: status, message: message });
         }
     } catch (err) {
         next(err);
     }
 }
+async function AuthenticateCodechefController(req, res, next) {
+    const handle = req.query.handle;
+    const fullName = req.query.fullName;
+    const username = req.query.username;
+    try {
+        const data = await checkUser(handle, fullName);
+        if (data) {
+            res.send({ code: 200, message: "user authenticated" });
+            await addHandleInfo(username, handle, "codechef");
+        } else {
+            res.send({ code: 201, message: "User not authenticated" });
+        }
+    } catch (err) {
+        next(err);
+    }
+}
+async function authenticateCodeforcesContoller(req, res, next) {
+    const { username, handle, emailid } = req.body;
+    haveCodeforces(handle, emailid)
+        .then(async (data) => {
+            res.send(data);
+            if (data.code == 200) {
+                await addHandleInfo(username, handle, "codeforces");
+            }
+        })
+        .catch((err) => next(err));
+}
 async function getHandlesInfoController(req, res, next) {
-    const { username } = req.query.username;
+    const { username } = req.query;
     try {
         const data = await getHandlesInfo(username);
         res.send({ code: 200, data: data });
@@ -105,10 +149,10 @@ async function getHandlesInfoController(req, res, next) {
 }
 module.exports = {
     HandleUserLogin,
-    HandleUserRegister,
-    HandleUserRegisterJee,
     HandleUserLogout,
     HandleOtpVerification,
     HandleOtpGeneration,
     getHandlesInfoController,
+    authenticateCodeforcesContoller,
+    AuthenticateCodechefController,
 };

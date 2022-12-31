@@ -16,6 +16,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    admin: {
+        type: Boolean,
+        required: true,
+    },
     handlesInfo: [
         {
             handle: {
@@ -31,42 +35,65 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model("User", userSchema);
-function randomColor() {
-    let hex = Math.floor(Math.random() * 0xffffff);
-    let color = "#" + hex.toString(16);
-    if (color == "#FFFFFF") return randomColor();
-    return color;
+function generateRandomColorHsl() {
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = Math.floor(30 + Math.random() * 71) + "%";
+    const lightness = Math.floor(40 + Math.random() * 61) + "%";
+    return "hsl(" + hue + ", " + saturation + ", " + lightness + ")";
 }
 async function getUser(username) {
     const data = await User.findOne({ username: username });
     return data;
 }
+async function getHandle(username, section) {
+    const data = await User.findOne({ username: username }).select({
+        handlesInfo: { $elemMatch: { section: section } },
+    });
+    if (
+        data["handlesInfo"] == undefined ||
+        data["handlesInfo"] == null ||
+        data["handlesInfo"].length == 0
+    )
+        return null;
+    const { handlesInfo } = data;
+    console.log("afhs : ", handlesInfo);
+    return handlesInfo[0].handle;
+}
 
-async function createUser(username, email_id, password) {
-    const color = randomColor();
+async function createUser(
+    username,
+    email_id,
+    password,
+    handlesInfo = [],
+    admin = false
+) {
+    const color = generateRandomColorHsl();
     const data = await User.create({
         emailId: email_id,
         username: username,
         password: password,
         color: color,
+        handlesInfo: handlesInfo,
+        admin: admin,
     });
     return color;
 }
-async function addHandlesInfo(username, handle, section) {
+async function addHandleInfo(username, handle, section) {
+    console.log("adding handle info : ", username, handle);
     const data = await User.updateOne(
         { username: username },
-        { $push: { handle: handle, section: section } }
+        { $push: { handlesInfo: { handle: handle, section: section } } }
     );
     return data;
 }
 async function getHandlesInfo(username) {
     const data = await User.findOne({ username: username });
-    if (data == null) return null;
     return data["handlesInfo"];
 }
 module.exports = {
     getUser,
     createUser,
     getHandlesInfo,
-    addHandlesInfo,
+    addHandleInfo,
+    getHandle,
 };

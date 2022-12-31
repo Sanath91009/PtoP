@@ -1,8 +1,9 @@
 import React from "react";
 import { Link, NavLink } from "react-router-dom";
+import DarkMode from "./darkMode";
 const Navbar = (props) => {
     return (
-        <nav className="navbar navbar-expand-lg navbar-light bg-light mb-3">
+        <nav className="navbar navbar-expand-lg mb-1">
             <div className="container-fluid">
                 <Link className="navbar-brand" to="/">
                     P2P
@@ -19,15 +20,12 @@ const Navbar = (props) => {
                     <span className="navbar-toggler-icon"></span>
                 </button>
                 <div className="collapse navbar-collapse" id="navbarNav">
-                    <ul className="navbar-nav">
-                        <li className="nav-item">
-                            <NavLink
-                                className="nav-link active"
-                                aria-current="page"
-                                to="/"
-                            >
-                                About
-                            </NavLink>
+                    <ul className="navbar-nav ms-auto">
+                        <li
+                            className="nav-item"
+                            style={{ marginTop: "7px", marginRight: "5px" }}
+                        >
+                            <DarkMode />
                         </li>
                         {props.user != null && (
                             <li className="nav-item">
@@ -51,24 +49,20 @@ const Navbar = (props) => {
                                 </NavLink>
                             </li>
                         )}
+                        {props.user != null && (
+                            <li className="nav-item">
+                                <NavLink
+                                    className="nav-link active"
+                                    aria-current="page"
+                                    to="/logout"
+                                >
+                                    Logout
+                                </NavLink>
+                            </li>
+                        )}
                     </ul>
                 </div>
             </div>
-            {props.user != null && (
-                <div className="collapse navbar-collapse" id="navbarNav">
-                    <ul className="navbar-nav">
-                        <li className="nav-item">
-                            <NavLink
-                                className="nav-link active"
-                                aria-current="page"
-                                to="/logout"
-                            >
-                                Logout
-                            </NavLink>
-                        </li>
-                    </ul>
-                </div>
-            )}
         </nav>
     );
 };

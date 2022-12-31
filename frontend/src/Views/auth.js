@@ -1,29 +1,115 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import config from "../config.json";
 import { toast } from "react-toastify";
 import Navbar from "../components/navbar";
 import { Login, getUser } from "../services/authService";
-import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import Joi from "joi-browser";
+import Countdown from "react-countdown";
+
 export const Auth = () => {
-    const location = useLocation();
-    const { section } = location.state;
     const navigate = useNavigate();
-    const [opt, setOtp] = useState(false);
+    const [otp, setOtp] = useState(false);
+    const [error, setError] = useState({});
+    const [resendOtp, setResendOtp] = useState(false);
+    const schema = {
+        emailid: Joi.string().required().email().label("emailid"),
+        password: Joi.string().required().min(5).label("password"),
+        username: Joi.string().required().min(5).label("username"),
+    };
     useEffect(() => {
-        if (getUser(section) != null) {
-            const { username } = getUser(section);
+        if (getUser("token") != null) {
+            const { username } = getUser("token");
             navigate("/dashboard", {
                 replace: true,
-                state: { section: section, username: username },
+                state: { username: username },
             });
         }
     });
+    const validate = (e) => {
+        const emailid = e.target.emailid.value;
+        const username = e.target.username.value;
+        const password = e.target.password.value;
+        const fields = {
+            emailid: emailid,
+            password: password,
+            username: username,
+        };
+        const results = Joi.validate(fields, schema, {
+            abortEarly: false,
+        });
+        if (!results.error) return null;
+        const error = {};
+        for (let item of results.error.details) {
+            error[item.path[0]] = item.message;
+        }
+        console.log("error : ", error);
+        return error;
+        return null;
+    };
+    const validateProperty = (e) => {
+        const { id: name, value } = e.currentTarget;
+        const obj = {
+            [name]: value,
+        };
+        const subschema = { [name]: schema[name] };
+        const { error } = Joi.validate(obj, subschema, { abortEarly: false });
+        return error ? error.details[0].message : null;
+    };
+    const HandleChange = (e) => {
+        setOtp(false);
+        const { id: label } = e.currentTarget;
+        const res = validateProperty(e);
+        const error_temp = { ...error };
+        if (res == null) {
+            delete error_temp[label];
+        } else {
+            error_temp[label] = res;
+        }
+        setError(error_temp);
+    };
+    const HandleResend = async () => {
+        const username = document.querySelector("#username").value;
+        const endpoint = config.apiUrl + "/register/generateOtp";
+        try {
+            await fetch(endpoint, {
+                method: "post",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: username,
+                    emailid: document.querySelector("#emailid").value,
+                }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log("data : ", data);
+                    if (data.code == 200) {
+                        toast.success("otp sent to your mail");
+                        localStorage.setItem("otp", data.hash);
+                        setResendOtp(false);
+                    } else {
+                        console.log(data.message);
+                        toast.error(data.message);
+                    }
+                });
+        } catch (err) {
+            toast.error(err);
+        }
+    };
     const HandleRegister = async (e) => {
         e.preventDefault();
+        const username = e.target.username.value;
         if (otp == false) {
+            const error = validate(e);
+            if (error == null) {
+                setError({});
+            } else {
+                setError(error);
+                return;
+            }
             const endpoint = config.apiUrl + "/register/generateOtp";
             try {
                 await fetch(endpoint, {
@@ -32,13 +118,15 @@ export const Auth = () => {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        username: username,
+                        emailid: e.target.emailid.value,
                     }),
                 })
                     .then((response) => response.json())
                     .then((data) => {
+                        console.log("data : ", data);
                         if (data.code == 200) {
                             setOtp(() => true);
+                            localStorage.setItem("otp", data.hash);
                         } else {
                             console.log(data.message);
                             toast.error(data.message);
@@ -48,7 +136,6 @@ export const Auth = () => {
                 toast.error(err);
             }
         } else {
-            const username = e.target.username.value;
             const email_id = e.target.emailid.value;
             const password = e.target.password.value;
             const otp = e.target.otp.value;
@@ -62,19 +149,21 @@ export const Auth = () => {
                     body: JSON.stringify({
                         username: username,
                         otp: otp,
+                        hash: localStorage.getItem("otp"),
                         addInfo: {
                             type: "registration",
                             pwd: password,
-                            emailID: email_id,
+                            emailid: email_id,
                         },
                     }),
                 })
                     .then((response) => response.json())
                     .then((data) => {
+                        console.log("data1 : ", data);
                         if (data.code == 200) {
                             toast("registered");
                             Login("token", data.token.accessToken);
-                            navigate("/dashboard", {
+                            navigate("/profile", {
                                 replace: true,
                             });
                         }
@@ -105,12 +194,14 @@ export const Auth = () => {
                 .then((data) => {
                     if (data.code == 200) {
                         toast("login successfull");
-                        Login(section, data.token.accessToken);
+                        Login("token", data.token.accessToken);
                         navigate("/dashboard", {
                             replace: true,
-                            state: { section: section, username: username },
                         });
                     } else {
+                        if (data.code != 410) {
+                            setOtp(false);
+                        }
                         toast(data.message);
                         console.log(data);
                     }
@@ -118,6 +209,12 @@ export const Auth = () => {
         } catch (err) {
             console.log(err);
             toast(err);
+        }
+    };
+    const renderer = ({ seconds, completed }) => {
+        if (completed) {
+        } else {
+            return <span>{seconds}</span>;
         }
     };
     return (
@@ -128,23 +225,30 @@ export const Auth = () => {
                     <div className="col-sm">
                         <form className="px-3" onSubmit={HandleRegister}>
                             <div className="form-group mb-2">
-                                <label for="username">Username</label>
+                                <label htmlFor="username">Username</label>
                                 <input
                                     type="text"
                                     className="form-control"
                                     id="username"
                                     aria-describedby="username"
                                     placeholder="Enter Username"
+                                    onChange={(e) => HandleChange(e)}
                                 />
                             </div>
+                            {error["username"] && (
+                                <div className="alert alert-danger">
+                                    {error["username"]}
+                                </div>
+                            )}
                             <div className="form-group mb-2">
-                                <label for="emailid">Email address</label>
+                                <label htmlFor="emailid">Email address</label>
                                 <input
                                     type="email"
                                     className="form-control"
                                     id="emailid"
                                     aria-describedby="emailid"
                                     placeholder="Enter email"
+                                    onChange={(e) => HandleChange(e)}
                                 />
                                 <small
                                     id="emailHelp"
@@ -154,19 +258,30 @@ export const Auth = () => {
                                     else.
                                 </small>
                             </div>
+                            {error["emailid"] && (
+                                <div className="alert alert-danger">
+                                    {error["emailid"]}
+                                </div>
+                            )}
                             <div className="form-group">
-                                <label for="password">Password</label>
+                                <label htmlFor="password">Password</label>
                                 <input
                                     type="password"
                                     className="form-control"
                                     id="password"
                                     aria-describedby="password"
                                     placeholder="Password"
+                                    onChange={(e) => HandleChange(e)}
                                 />
                             </div>
+                            {error["password"] && (
+                                <div className="alert alert-danger">
+                                    {error["password"]}
+                                </div>
+                            )}
                             {otp == true && (
                                 <div className="form-group mb-2">
-                                    <label for="otp">otp</label>
+                                    <label htmlFor="otp">otp</label>
                                     <input
                                         type="text"
                                         className="form-control"
@@ -174,6 +289,31 @@ export const Auth = () => {
                                         aria-describedby="otp"
                                         placeholder="Enter otp"
                                     />
+                                    {resendOtp == false ? (
+                                        <span>
+                                            Resend otp in{" "}
+                                            <Countdown
+                                                date={Date.now() + 5000}
+                                                intervalDelay={0}
+                                                precision={3}
+                                                renderer={renderer}
+                                                onComplete={() =>
+                                                    setResendOtp(true)
+                                                }
+                                            />{" "}
+                                            seconds
+                                        </span>
+                                    ) : (
+                                        <a
+                                            onClick={HandleResend}
+                                            style={{
+                                                cursor: "pointer",
+                                                textDecoration: "underline",
+                                            }}
+                                        >
+                                            Resend Otp
+                                        </a>
+                                    )}
                                 </div>
                             )}
                             <div className="text-center">
@@ -190,7 +330,7 @@ export const Auth = () => {
                     <div className="col">
                         <form className="px-3" onSubmit={HandleLogin}>
                             <div className="form-group mb-2">
-                                <label for="username1">Username</label>
+                                <label htmlFor="username1">Username</label>
                                 <input
                                     type="text"
                                     className="form-control"
@@ -200,7 +340,7 @@ export const Auth = () => {
                                 />
                             </div>
                             <div className="form-group">
-                                <label for="password1">Password</label>
+                                <label htmlFor="password1">Password</label>
                                 <input
                                     type="password"
                                     className="form-control"
