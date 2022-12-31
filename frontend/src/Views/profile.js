@@ -174,6 +174,7 @@ export const Profile = () => {
                                 const verified_temp = { ...verified };
                                 verified_temp[section] = handle;
                                 setVerfied(verified_temp);
+                                localStorage.removeItem("otp");
                                 toast.success(
                                     `${section} handle authenitcation successful`
                                 );

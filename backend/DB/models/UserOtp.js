@@ -1,5 +1,6 @@
 const otpGenerator = require("otp-generator");
 const crypto = require("crypto");
+var AWS = require("aws-sdk");
 const key = process.env.KEY;
 
 async function createNewOTP(emailid) {
@@ -14,6 +15,49 @@ async function createNewOTP(emailid) {
     const hash = crypto.createHmac("sha256", key).update(data).digest("hex");
     const fullHash = `${hash}.${expires}`;
     console.log("otp : ", otp);
+
+    // send otp to mail id
+    // Set the region
+    AWS.config.update({ region: "REGION" });
+
+    // Create sendEmail params
+    var params = {
+        Destination: {
+            ToAddresses: [emailid],
+        },
+        Message: {
+            Body: {
+                Html: {
+                    Charset: "UTF-8",
+                    Data: "HTML_FORMAT_BODY",
+                },
+                Text: {
+                    Charset: "UTF-8",
+                    Data: otp,
+                },
+            },
+            Subject: {
+                Charset: "UTF-8",
+                Data: "OTP-P2P",
+            },
+        },
+        Source: "sanath303@gmail.com" /* required */,
+        ReplyToAddresses: [],
+    };
+
+    // Create the promise and SES service object
+    var sendPromise = new AWS.SES({ apiVersion: "2010-12-01" })
+        .sendEmail(params)
+        .promise();
+
+    // Handle promise's fulfilled/rejected states
+    sendPromise
+        .then(function (data) {
+            console.log(data.MessageId);
+        })
+        .catch(function (err) {
+            console.error(err, err.stack);
+        });
     return fullHash;
 }
 async function verifyOTP(emailid, hash, otp) {

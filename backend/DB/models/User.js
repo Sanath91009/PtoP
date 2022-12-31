@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const crypto = require("crypto");
+const key = process.env.KEY;
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -68,10 +70,14 @@ async function createUser(
     admin = false
 ) {
     const color = generateRandomColorHsl();
+    const pwd_hash = crypto
+        .createHmac("sha256", key)
+        .update(password + process.env.SALT)
+        .digest("hex");
     const data = await User.create({
         emailId: email_id,
         username: username,
-        password: password,
+        password: pwd_hash,
         color: color,
         handlesInfo: handlesInfo,
         admin: admin,

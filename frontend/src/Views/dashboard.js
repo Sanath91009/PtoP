@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import config from "../config.json";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/navbar";
 import { toast } from "react-toastify";
 import Countdown from "react-countdown";
@@ -86,12 +86,13 @@ export const Dashboard = (props) => {
                         .then((response) => response.json())
                         .then((data) => {
                             console.log("response : ", data);
-                            if (data.code == 400) {
-                                toast.error(
-                                    `please authentuicate your ${event_cur.section} handle`
-                                );
-                                navigate("/profile");
+                            if (data.code >= 400) {
+                                toast.error(data.message);
+                                if (data.code == 400) {
+                                    navigate("/profile");
+                                }
                             } else {
+                                console.log("data1: ", data);
                                 if (data.code == 200) {
                                     event_cur.showButton = "Registered";
                                     event_cur.classNameButton = "btn btn-info";

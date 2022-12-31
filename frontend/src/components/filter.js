@@ -45,9 +45,9 @@ export const Filter = ({
             <div className="my-2">
                 <p className="p-0 m-0">Solved</p>
                 {questions &&
-                    questions.map((q) => {
+                    questions.map((q, index) => {
                         return (
-                            <div className="form-check" key={q.code}>
+                            <div className="form-check" key={index}>
                                 <input
                                     className="form-check-input"
                                     type="checkbox"

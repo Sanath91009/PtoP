@@ -10,10 +10,6 @@ export const DisplayRooms = ({ rooms, myInfo, eventID }) => {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        console.log(
-            scrollRef.current.scrollTop + scrollRef.current.clientHeight >=
-                scrollRef.current.scrollHeight
-        );
         if (
             scrollRef.current.scrollTop + scrollRef.current.clientHeight >=
                 scrollRef.current.scrollHeight &&
@@ -32,7 +28,6 @@ export const DisplayRooms = ({ rooms, myInfo, eventID }) => {
     const showItems = () => {
         var items = [];
         let i = 0;
-        console.log("itemSize : ", itemsSize, rooms.length);
         while (i < rooms.length && i < itemsSize) {
             const room = rooms[i];
             items.push(
@@ -41,7 +36,7 @@ export const DisplayRooms = ({ rooms, myInfo, eventID }) => {
                     key={i}
                     style={{
                         width: "190px",
-                        height: "190px",
+                        height: "240px",
                     }}
                 >
                     <div className="card-body text-center">
@@ -72,11 +67,9 @@ export const DisplayRooms = ({ rooms, myInfo, eventID }) => {
                                     );
                                 }
                             })}
+                        <small className="m-0">Room Members : </small>
                         {room.roomMembers.map((m, index) => {
-                            if (
-                                m.handle != room.initiated &&
-                                m.handle != myInfo.handle
-                            ) {
+                            if (m.handle != room.initiated) {
                                 return (
                                     <p key={index} className="m-0">
                                         {m.handle}
@@ -109,7 +102,7 @@ export const DisplayRooms = ({ rooms, myInfo, eventID }) => {
             className="row d-flex flex-row"
         >
             {showItems()}
-            {loading ? <p className="loading">loading ...</p> : ""}
+            {loading ? <p className="loading dark">loading ...</p> : ""}
         </div>
     );
 };

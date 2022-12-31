@@ -1,7 +1,13 @@
 ###
 get http://localhost:1337/getUserResult?handle=dskjbaksj&contestID=START66B
 
+###
+post http://localhost:1337/register/generateOtp
+Content-Type: application/json
 
+{
+    "emailid":"sanath303@gmail.com"
+}
 
 ####
 post http://localhost:1337/login/verify

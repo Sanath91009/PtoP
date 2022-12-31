@@ -12,7 +12,6 @@ export const DisplayCard = ({
     label1,
 }) => {
     const [itemsSize, setItemsSize] = useState(20);
-    const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const scrollRef = useRef();
     useEffect(() => {
@@ -83,7 +82,6 @@ export const DisplayCard = ({
             setLoading(false);
         }, 2000);
     };
-    console.log("display candidates");
     return (
         <div
             style={{ overflow: "auto" }}
@@ -91,7 +89,7 @@ export const DisplayCard = ({
             className="row d-flex flex-row"
         >
             {showItems()}
-            {loading ? <p className="loading">loading ...</p> : ""}
+            {loading ? <p className="loading dark">loading ...</p> : ""}
         </div>
     );
 };

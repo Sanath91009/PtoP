@@ -162,6 +162,7 @@ export const Auth = () => {
                         console.log("data1 : ", data);
                         if (data.code == 200) {
                             toast("registered");
+                            localStorage.removeItem("otp");
                             Login("token", data.token.accessToken);
                             navigate("/profile", {
                                 replace: true,

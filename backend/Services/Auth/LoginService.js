@@ -5,7 +5,8 @@ const { verifyRefreshToken } = require("./../../Helpers/Auth/jwtTokenFactory");
 const { signAllTokens } = require("./TokenService");
 const { AT_DURATION } = require("../../Helpers/Auth/jwtTokenFactory");
 const { getUser } = require("../../DB/models/User");
-
+const crypto = require("crypto");
+const key = process.env.KEY;
 // //if already logged in resolves payload else rejects
 function checkIfLogin(refreshToken) {
     return new Promise((resolve, reject) => {
@@ -25,7 +26,11 @@ function performLogin(res, username, password) {
         console.log(username);
         const data = await getUser(username);
         console.log("data : ", data);
-        if (data !== null && password === data.password) {
+        const pwd_hash = crypto
+            .createHmac("sha256", key)
+            .update(password + process.env.SALT)
+            .digest("hex");
+        if (data !== null && pwd_hash === data.password) {
             try {
                 const token = await signAllTokens(data);
                 res.cookie("__AT__", token, {

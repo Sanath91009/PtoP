@@ -79,7 +79,6 @@ async function userParticipated(handle, section, eventID) {
                 } else if (data.result.rows.length == 0) {
                     res.participated = false;
                 } else {
-                    const url = `https://codeforces.com/api/user.info?handles=${handle}`;
                     res.participated = true;
                     const sub = data.result.rows[0].problemResults;
                     res.solved = [];
@@ -88,12 +87,13 @@ async function userParticipated(handle, section, eventID) {
                             res.solved.push(dependent.questions[i].code);
                         }
                     }
-                    await fetch(url)
-                        .then((response) => response.json())
-                        .then((data) => {
-                            res.rating = data.result[0].rating;
-                        });
                 }
+                const url = `https://codeforces.com/api/user.info?handles=${handle}`;
+                await fetch(url)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        res.rating = data.result[0].rating;
+                    });
             });
         return res;
     } else if (section == "codechef") {
@@ -138,7 +138,7 @@ async function registerCandidate(req, res, next) {
             if (par.participated == false) {
                 if (par.rating < 1900) {
                     res.send({
-                        code: 400,
+                        code: 401,
                         message:
                             "sorry you are not participated in this contest",
                     });

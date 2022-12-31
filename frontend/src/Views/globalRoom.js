@@ -1,7 +1,7 @@
 import React from "react";
 import io from "socket.io-client";
 import config from "../config.json";
-import { useLocation, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -10,7 +10,6 @@ import { getUser } from "../services/authService";
 import { DisplayCard } from "../components/displayCards";
 import { DisplayRooms } from "./displayRooms";
 import { Filter } from "../components/filter";
-import { HandleForm } from "../components/handleForm";
 const socket = io.connect(config.apiUrl);
 function compare(a, b) {
     if (a.timestamp < b.timestamp) {
@@ -42,8 +41,6 @@ export const GlobalRoom = () => {
         fetch(endpoint)
             .then((response) => response.json())
             .then((data) => {
-                console.log("data : ", data);
-                // sort with rating
                 setCandidates(data.message);
                 setCandidatesFiltered(data.message);
             });
@@ -62,12 +59,11 @@ export const GlobalRoom = () => {
                         reqSent_temp[k] = 1;
                     }
                 }
-                console.log(requests);
                 setReqSent(reqSent_temp);
                 setRequestees(requests);
                 setRequesteesFiltered(requests);
                 setMyInfo({ handle: handle, solved: solved, rating: rating });
-                console.log("data: ", data);
+                console.log("data: ", data, handle);
                 socket.emit("join_room", { room: handle });
                 const endpoint3 =
                     config.apiUrl +
@@ -75,6 +71,7 @@ export const GlobalRoom = () => {
                 fetch(endpoint3)
                     .then((response) => response.json())
                     .then((data) => {
+                        console.log("data.data : ", data.data);
                         setRooms(data.data);
                         setRoomsFiltered(data.data);
                     });
@@ -100,6 +97,19 @@ export const GlobalRoom = () => {
             c.rating <= rating_to &&
             temp
         );
+    };
+    const sortCard = (candidates, order = "desc") => {
+        if (order == "desc") {
+            const sortedCandidates = candidates.sort(
+                (a, b) => parseFloat(b.rating) - parseFloat(a.rating)
+            );
+            return sortedCandidates;
+        } else {
+            const sortedCandidates = candidates.sort(
+                (a, b) => parseFloat(a.rating) - parseFloat(b.rating)
+            );
+            return sortedCandidates;
+        }
     };
     const checkData = (data) => {
         const handle_filter = document.querySelector("#handle").value;
@@ -154,8 +164,13 @@ export const GlobalRoom = () => {
             console.log(requestees_temp);
             setRequestees(requestees_temp);
             setNewRequests((newRequests) => newRequests + 1);
-            if (checkData(data))
-                setRequesteesFiltered((prev) => [...prev, data]);
+            if (checkData(data)) {
+                setRequesteesFiltered((prev) => {
+                    const requesteesFiltered_temp = [...prev, data];
+
+                    return sortCard(requesteesFiltered_temp, "desc");
+                });
+            }
         });
         socket.on("createdRoom", (data) => {
             console.log("room created... : ", data, data.random);
@@ -168,8 +183,13 @@ export const GlobalRoom = () => {
             }
             setRooms(rooms_temp);
             setNewLinks((prev) => prev + 1);
-            if (checkDataForRoom(data))
-                setRoomsFiltered((prev) => [...prev, data]);
+            if (checkDataForRoom(data)) {
+                setRoomsFiltered((prev) => {
+                    const roomsFiltered_temp = [...prev, data];
+
+                    return sortCard(roomsFiltered_temp, "desc");
+                });
+            }
         });
     }, [socket]);
     function isSubset(filtered, cand) {
@@ -195,7 +215,8 @@ export const GlobalRoom = () => {
         requesteesFiltered_temp = requesteesFiltered_temp.filter((c) => {
             return FilterCard(c, rating_from, rating_to, handle_filter, solved);
         });
-        setRequesteesFiltered(requesteesFiltered_temp);
+
+        setRequesteesFiltered(sortCard(requesteesFiltered_temp));
     };
     const HandleFilterClickRooms = (e) => {
         e.preventDefault();
@@ -231,7 +252,7 @@ export const GlobalRoom = () => {
             }
             return false;
         });
-        setRoomsFiltered(roomsFiltered_temp);
+        setRoomsFiltered(sortCard(roomsFiltered_temp));
     };
     const HandleFilterClickCandidates = (e) => {
         e.preventDefault();
@@ -250,7 +271,7 @@ export const GlobalRoom = () => {
         candidatesFiltered_temp = candidatesFiltered_temp.filter((c) => {
             return FilterCard(c, rating_from, rating_to, handle_filter, solved);
         });
-        setCandidatesFiltered(candidatesFiltered_temp);
+        setCandidatesFiltered(sortCard(candidatesFiltered_temp));
     };
     const HandleRequest = (candidate) => {
         console.log("myInfo : ", myInfo, candidate);
