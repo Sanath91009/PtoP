@@ -80,15 +80,15 @@ export const PorfileInfo = (props) => {
                                         }}
                                     />
                                 ) : (
-                                    <FontAwesomeIcon icon={faCheckCircle} K />
+                                    <FontAwesomeIcon icon={faCheckCircle} />
                                 )}{" "}
                                 for authentication
                             </p>
                             <button
-                                className="btn btn-primary"
+                                className="btn btn-primary authHandle2"
                                 onClick={HandleSubmit}
                             >
-                                Enter after changing your name
+                                Hit after changing your full name
                             </button>
                         </div>
                     ) : (

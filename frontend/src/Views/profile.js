@@ -56,6 +56,7 @@ export const Profile = () => {
     const HandleSubmitCodechef = () => {
         const handle = document.getElementById("codechefHandle").value;
         try {
+            document.querySelector(".authHandle2").disabled = true;
             const endpoint =
                 config.apiUrl +
                 `/checkUserCodeChef?handle=${handle}&fullName=${fullName}&username=${username}`;
@@ -72,6 +73,7 @@ export const Profile = () => {
                             "Please change your full name in codechef profile"
                         );
                     }
+                    document.querySelector(".authHandle2").disabled = false;
                 });
         } catch (err) {
             console.log(err);
@@ -84,6 +86,7 @@ export const Profile = () => {
         otp_val = null
     ) => {
         if (email == emailid) {
+            document.querySelector(".authHandle1").disabled = true;
             const endpoint = config.apiUrl + "/auth/" + section;
             try {
                 await fetch(endpoint, {
@@ -111,13 +114,15 @@ export const Profile = () => {
                                 `Authentication for ${section} failed : ${data.message}`
                             );
                         }
+                        document.querySelector(".authHandle1").disabled = false;
                     });
             } catch (err) {
                 toast.error(err);
             }
         } else {
+            document.querySelector(".authHandle1").disabled = true;
             console.log("otp : ", otp[section]);
-            if (otp[section] == undefined) {
+            if (otp_val == null) {
                 const endpoint = config.apiUrl + "/register/generateOtp";
                 try {
                     await fetch(endpoint, {
@@ -142,6 +147,9 @@ export const Profile = () => {
                                 console.log(data.message);
                                 toast.error(data.message);
                             }
+                            document.querySelector(
+                                ".authHandle1"
+                            ).disabled = false;
                         });
                 } catch (err) {
                     toast.error(err);
@@ -187,6 +195,9 @@ export const Profile = () => {
                                 toast.error(
                                     `Authentication for ${section} failed : ${data.message}`
                                 );
+                                document.querySelector(
+                                    ".authHandle1"
+                                ).disabled = false;
                             }
                         });
                 } catch (err) {

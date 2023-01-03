@@ -126,6 +126,7 @@ export const Auth = () => {
                         console.log("data : ", data);
                         if (data.code == 200) {
                             setOtp(() => true);
+                            console.log("otp hash : ", data.hash);
                             localStorage.setItem("otp", data.hash);
                         } else {
                             console.log(data.message);

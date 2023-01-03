@@ -1,4 +1,3 @@
-import { block } from "joi-browser";
 import React from "react";
 
 const getInitials = (name) => {

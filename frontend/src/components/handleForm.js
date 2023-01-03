@@ -86,7 +86,14 @@ export const HandleForm = ({
                         </span>
                     ) : (
                         <a
-                            onClick={HandleSubmit}
+                            onClick={async () => {
+                                await HandleSubmit(
+                                    section,
+                                    document.querySelector("#Handle").value,
+                                    document.querySelector("#emailid").value
+                                );
+                                setResendOtp(false);
+                            }}
                             style={{
                                 cursor: "pointer",
                                 textDecoration: "underline",
@@ -98,7 +105,10 @@ export const HandleForm = ({
                 </div>
             )}
             <div className="text-center">
-                <button type="submit" className="btn btn-primary mt-2">
+                <button
+                    type="submit"
+                    className="btn btn-primary mt-2 authHandle1"
+                >
                     Authenticate your handle
                 </button>
             </div>
