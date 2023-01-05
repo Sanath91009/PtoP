@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const formData = require("form-data");
 const Mailgun = require("mailgun.js");
 const key = process.env.KEY;
-const API_KEY = "541f2f571b6cb2359b83c58714cefb5d-cc9b2d04-e447a830";
+const API_KEY = process.env.API_KEY;
 const DOMAIN = "peer2peer.social";
 async function createNewOTP(emailid) {
     const otp = otpGenerator.generate(6, {
