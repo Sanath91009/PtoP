@@ -30,8 +30,8 @@ function ServerInit(conf) {
             : "Configure in Production Mode"
     );
     // app.set('port', process.env.PORT || 5000);
-    // console.log("++++++++++++++++" + app.get('port'));
-    app.set("port", process.env.PORT);
+
+    app.set("port", process.env.port || 8080);
     const server = app.listen(app.get("port"), () => {
         console.log(
             `Server is listening on Port ${conf.primaryInfo.serverPort}`
