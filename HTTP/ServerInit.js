@@ -31,7 +31,7 @@ function ServerInit(conf) {
     );
     // app.set('port', process.env.PORT || 5000);
     // console.log("++++++++++++++++" + app.get('port'));
-    app.set("port", conf.primaryInfo.serverPort);
+    app.set("port", process.env.PORT);
     const server = app.listen(app.get("port"), () => {
         console.log(
             `Server is listening on Port ${conf.primaryInfo.serverPort}`

@@ -1,4 +1,4 @@
 {
-    "apiUrl":"http://localhost:1337",
+    "apiUrl":"https://peer-2-peer.azurewebsites.net/",
     "duration":90800000
 }
