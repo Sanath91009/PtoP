@@ -37,9 +37,9 @@ function ServerInit(conf) {
             `Server is listening on Port ${conf.primaryInfo.serverPort}`
         );
     });
-    app.use(express.static("../../frontend/build"));
+    app.use(express.static("../client/build"));
     app.get("*", (req, res) => {
-        res.sendFile(path.resolve(__dirname, "client", "build", "index.html"));
+        res.sendFile("../client/build/index.html");
     });
     app.use("/", (req, res, next) => {
         console.log(req.method);
