@@ -48,35 +48,29 @@ function SocketInit(app, server) {
         });
         socket.on("CreateRoom", async (data) => {
             let uuid = uuidv4();
-            const { eventID, handle, solved, rating, requestTo, timestamp } =
+            const { eventID, handle, solved, rating, roomMembers, timestamp } =
                 data;
             await addRoom(eventID, uuid, handle, timestamp);
-            console.log("handle : ", {
-                handle: handle,
-                solved: solved,
-                rating: rating,
-            });
-            await addRoomMember(uuid, {
-                handle: handle,
-                solved: solved,
-                rating: rating,
-            });
-            const handles = Object.keys(requestTo);
+            const roomMembers_temp = [
+                ...roomMembers,
+                { handle: handle, solved: solved, rating: rating },
+            ];
             console.log("creting room : ", data);
-            for (let i = 0; i < handles.length; i++) {
-                if (socketToRoom[handles[i]] != undefined) {
-                    socketToRoom[handles[i]].emit("createdRoom", {
+            for (let i = 0; i < roomMembers_temp.length; i++) {
+                const handle_temp = roomMembers_temp[i].handle;
+                if (socketToRoom[handle_temp] != undefined) {
+                    socketToRoom[handle_temp].emit("createdRoom", {
                         uuid: uuid,
-                        initiated: handle,
-                        roomMembers: requestTo,
+                        initiated: handle_temp,
+                        roomMembers: roomMembers_temp,
                         timestamp: timestamp,
                     });
                 }
 
                 await addRoomMember(uuid, {
-                    handle: handles[i],
-                    solved: requestTo[handles[i]].solved,
-                    rating: requestTo[handles[i]].rating,
+                    handle: handle_temp,
+                    solved: roomMembers_temp[i].solved,
+                    rating: roomMembers_temp[i].rating,
                 });
             }
         });
@@ -149,7 +143,7 @@ function SocketInit(app, server) {
             const { roomID, userID, handle } = data;
             console.log("handlesJoined : ", handlesJoined, handle);
             if (handlesJoined[handle]) {
-                console.log("handle alreay there : ");
+                console.log("handle alreay there : ", handlesJoined[handle]);
                 socket
                     .to(handlesJoined[handle].roomID)
                     .emit("user-disconnected", handlesJoined[handle].userID);
@@ -166,13 +160,18 @@ function SocketInit(app, server) {
             }
             handlesJoined[handle] = { roomID: roomID, userID: userID };
             socketToRoomChat[userID] = socket;
-            console.log("sockettoRoom : ", userID);
             socket.on("disconnect", () => {
-                console.log("disconnected");
                 socket.to(roomID).emit("user-disconnected", userID);
                 delete socketToRoomChat[userID];
                 delete handlesJoined[handle];
             });
+        });
+        socket.on("leaving", (userID, roomID, handle) => {
+            socketToRoomChat[userID]
+                .to(roomID)
+                .emit("user-disconnected", userID);
+            delete socketToRoomChat[userID];
+            delete handlesJoined[handle];
         });
         socket.on("start-video-cam-again-send", (data) => {
             socketToRoomChat[data.userID]

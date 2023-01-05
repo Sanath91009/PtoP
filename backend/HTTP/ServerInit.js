@@ -29,13 +29,18 @@ function ServerInit(conf) {
             ? "Configured in Dev Mode"
             : "Configure in Production Mode"
     );
-
-    const server = app.listen(conf.primaryInfo.serverPort, () => {
+    // app.set('port', process.env.PORT || 5000);
+    // console.log("++++++++++++++++" + app.get('port'));
+    app.set("port", conf.primaryInfo.serverPort);
+    const server = app.listen(app.get("port"), () => {
         console.log(
             `Server is listening on Port ${conf.primaryInfo.serverPort}`
         );
     });
-
+    app.use(express.static("../../frontend/build"));
+    app.get("*", (req, res) => {
+        res.sendFile(path.resolve(__dirname, "client", "build", "index.html"));
+    });
     app.use("/", (req, res, next) => {
         console.log(req.method);
         console.log(req.url);

@@ -14,16 +14,13 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Chatbox } from "../components/chatbox";
 import { v4 as uuidv4 } from "uuid";
 import config from "../config.json";
-import userImg from "../images/defaultUser.png";
 import { UserAvatar } from "../components/userAvatar";
 import { ReactComponent as Hangup } from "../images/hangup.svg";
 import { ReactComponent as ScreenShare } from "../images/screenShare.svg";
 import { getUser } from "../services/authService";
-import { SocketContext } from "../context/socket";
 import "../css/Proom.css";
-
 const Windowheight = window.innerHeight;
-
+const socket = io.connect(config.apiUrl);
 export const PrivateRoom = () => {
     const [chat, setChat] = useState(0);
     const { roomID, eventID } = useParams();
@@ -32,7 +29,7 @@ export const PrivateRoom = () => {
     const [usersInRoom, setUsersInRoom] = useState([]);
     const [CurVideoID, setCurVideoID] = useState(0);
     const [newMessage, setNewMessage] = useState(0);
-    const socket = useContext(SocketContext);
+
     const [myUserID, setMyUserID] = useState(uuidv4());
     const [usersVideoStatus, setUsersVideoStatus] = useState({});
     const [myPeer, setMyPeer] = useState();
@@ -71,7 +68,6 @@ export const PrivateRoom = () => {
         myVideo.style = "display:none;margin:5px";
         div_wrapper.append(myVideo);
         videoClass.append(div_wrapper);
-        // mapperRef.current[userID] = CurVideoID;
         setCurVideoID((CurVideoID) => {
             return CurVideoID + 1;
         });
@@ -120,7 +116,6 @@ export const PrivateRoom = () => {
         }
     };
     useEffect(() => {
-        console.log("usersvideo status changed : ", usersVideoStatus);
         Object.keys(usersVideoStatus).map((k, index) => {
             const b = usersVideoStatus[k];
             console.log(" k : ", k, b);
@@ -138,9 +133,6 @@ export const PrivateRoom = () => {
             }
         });
     }, [usersVideoStatus]);
-    useEffect(() => {
-        console.log("users In room changed..");
-    }, [usersInRoom]);
     const UserConnectedHandler = (data) => {
         const elements = getVideoClassRef.current(data.userID);
         console.log("when calling : ", streamState.getTracks());
@@ -220,14 +212,11 @@ export const PrivateRoom = () => {
         });
     }, [myInfo, streamState]);
     useEffect(() => {
-        console.log("useEffect called....", streamState);
         if (myPeer == null) return;
         myPeer.on("call", (call) => {
-            console.log("streamState when ansewering : ", streamState);
             call.answer(streamState);
             const { userID, handle, color, videoOn } = call.metadata;
             const elements = getVideoClassRef.current(userID);
-            console.log("call came : ", call.metadata.userID, elements.videoID);
             const videoID = elements.videoID;
             setUsersInRoom((usersInRoom) => [
                 ...usersInRoom,
@@ -270,19 +259,21 @@ export const PrivateRoom = () => {
                 HandleEndCall();
                 return;
             }
+            const usersInRoom_temp = [];
             for (let i = 0; i < usersInRoom.length; i++) {
                 if (usersInRoom[i].userID == userID) {
                     console.log("cideoID : ", usersInRoom[i].videoID);
                     usersInRoom[i].call.close();
                     const id = usersInRoom[i].videoID;
                     document.querySelector(`.D${id}`).remove();
-                }
+                } else usersInRoom_temp.push(usersInRoom[i]);
             }
             if (othersScreenShare && othersScreenShare["userID"] == userID) {
                 othersScreenShare["call"].close();
                 setOthersScreenShare(null);
                 document.querySelector(".ScreenShare").remove();
             }
+            setUsersInRoom(usersInRoom_temp);
         });
         socket.on("start-video-cam-again-recv", (data) => {
             console.log("start video cam");
@@ -536,7 +527,7 @@ export const PrivateRoom = () => {
             setScreenButton({ className: "btn btn-dark" });
         }
     };
-    const HandleEndCall = () => {
+    const HandleEndCall = async () => {
         if (screenStream) {
             screenStream.getTracks().forEach(function (track) {
                 track.stop();
@@ -547,13 +538,10 @@ export const PrivateRoom = () => {
                 track.stop();
             });
         }
+        await myPeer.destroy();
         socket.disconnect();
-        for (let i = 0; i < usersInRoom.length; i++) {
-            if (usersInRoom[i].userID != myInfo.userID) {
-                usersInRoom[i].call.close();
-            }
-        }
-        navigate("/dashboard");
+        // socket.emit("leaving", myInfo.userID, roomID, myInfo.handle);
+        navigate(`/${eventID}/Groom`);
     };
     return (
         <div

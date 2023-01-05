@@ -1,8 +1,10 @@
 const otpGenerator = require("otp-generator");
 const crypto = require("crypto");
-var AWS = require("aws-sdk");
+const formData = require("form-data");
+const Mailgun = require("mailgun.js");
 const key = process.env.KEY;
-
+const API_KEY = "541f2f571b6cb2359b83c58714cefb5d-cc9b2d04-e447a830";
+const DOMAIN = "peer2peer.social";
 async function createNewOTP(emailid) {
     const otp = otpGenerator.generate(6, {
         lowerCaseAlphabets: false,
@@ -14,42 +16,29 @@ async function createNewOTP(emailid) {
     const data = `${emailid}.${otp}.${expires}`;
     const hash = crypto.createHmac("sha256", key).update(data).digest("hex");
     const fullHash = `${hash}.${expires}`;
-    console.log("otp : ", otp);
-    console.log("data : ", data);
+    // console.log("otp : ", otp);
+    // console.log("data : ", data);
     // send otp to mail id
 
-    // var params = {
-    //     Destination: {
-    //         ToAddresses: [emailid],
-    //     },
-    //     Message: {
-    //         Body: {
-    //             Html: {
-    //                 Charset: "UTF-8",
-    //                 Data: "HTML_FORMAT_BODY",
-    //             },
-    //             Text: {
-    //                 Charset: "UTF-8",
-    //                 Data: "otp : " + otp,
-    //             },
-    //         },
-    //         Subject: {
-    //             Charset: "UTF-8",
-    //             Data: "OTP",
-    //         },
-    //     },
-    //     Source: "peertopeer303@gmail.com",
-    // };
+    const mailgun = new Mailgun(formData);
+    const client = mailgun.client({ username: "api", key: API_KEY });
 
-    // var sendPromise = SES.sendEmail(params).promise();
+    const messageData = {
+        from: "no-reply@peer2peer.social",
+        to: [emailid],
+        subject: "Authentication Code",
+        text: "Testing some Mailgun awesomness!",
+        html: `<html><p>Welcome to P2P platform, happy learning</p><h3>OTP : ${otp}</h3></html>`,
+    };
+    client.messages
+        .create(DOMAIN, messageData)
+        .then((res) => {
+            console.log("res : ", res);
+        })
+        .catch((err) => {
+            console.error("err : ", err);
+        });
 
-    // sendPromise
-    //     .then(function (data) {
-    //         console.log(data.MessageId);
-    //     })
-    //     .catch(function (err) {
-    //         console.error(err, err.stack);
-    //     });
     return fullHash;
 }
 async function verifyOTP(emailid, hash, otp) {

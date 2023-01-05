@@ -133,6 +133,12 @@ export const GlobalRoom = () => {
         if (!rating_from) rating_from = 0;
         if (!rating_to) rating_to = 4000;
         let solved = [];
+        console.log(
+            "checking data rooms : ",
+            handle_filter,
+            rating_to,
+            rating_from
+        );
         questions.map((q) => {
             const temp = document.querySelector(`#${q.code}`).checked;
             if (temp) {
@@ -140,6 +146,7 @@ export const GlobalRoom = () => {
             }
         });
         const temp = c.roomMembers;
+        console.log("temp : ", temp);
         for (let i = 0; i < temp.length; i++) {
             if (temp[i].handle != myInfo.handle) {
                 if (
@@ -178,7 +185,6 @@ export const GlobalRoom = () => {
             rooms_temp.push(data);
             rooms_temp.sort(compare);
             if (data.random == true) {
-                console.log("setting");
                 setRandomClass(() => "btn btn-dark");
             }
             setRooms(rooms_temp);
@@ -307,6 +313,7 @@ export const GlobalRoom = () => {
             reqAccepted_temp[candidate.handle] = {
                 solved: candidate.solved,
                 rating: candidate.rating,
+                handle: candidate.handle,
             };
         } else {
             delete reqAccepted_temp[candidate.handle];
@@ -318,7 +325,7 @@ export const GlobalRoom = () => {
         const timestamp = Date.now();
         socket.emit("CreateRoom", {
             eventID: eventID,
-            requestTo: reqAccepted,
+            roomMembers: [...Object.values(reqAccepted)],
             handle: myInfo.handle,
             solved: myInfo.solved,
             rating: myInfo.rating,
