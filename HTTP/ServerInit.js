@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const cors = require("cors");
-
+const path = require("path");
 function ServerInit(conf) {
     const app = express();
     app.use(cors({ credentials: true, origin: true }));
@@ -37,10 +37,8 @@ function ServerInit(conf) {
             `Server is listening on Port ${conf.primaryInfo.serverPort}`
         );
     });
-    app.use(express.static("../client/build"));
-    app.get("*", (req, res) => {
-        res.sendFile("../client/build/index.html");
-    });
+    app.use(express.static(path.join(__dirname, "../client/build")));
+
     app.use("/", (req, res, next) => {
         console.log(req.method);
         console.log(req.url);

@@ -1,5 +1,5 @@
 ###
-get http://localhost:1337/getUserResult?handle=dskjbaksj&contestID=START66B
+get http://localhost:8080/getUserResult?handle=sanath12345&contestID=START66B
 
 ###
 post http://localhost:1337/register/generateOtp
