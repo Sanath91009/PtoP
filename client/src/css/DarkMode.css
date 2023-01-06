@@ -13,10 +13,14 @@
 }
 [data-theme="light"]{
   --forEvents:#333;
+  --rev-font-color:#eee;
 }
 /* 3 */
 html body .home h3{
   color: var(--font-color);
+}
+html body .oppo{
+  color:var(--rev-font-color)
 }
 html body .form-group{
   color: var(--font-color);

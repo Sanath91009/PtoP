@@ -226,6 +226,9 @@ export const Auth = () => {
                 <div className="row">
                     <div className="col-sm">
                         <form className="px-3" onSubmit={HandleRegister}>
+                            <div className="text-center">
+                                <h2>SignUp</h2>
+                            </div>
                             <div className="form-group mb-2">
                                 <label htmlFor="username">Username</label>
                                 <input
@@ -331,6 +334,9 @@ export const Auth = () => {
                     <div className="vr" style={{ width: 1, padding: 0 }}></div>
                     <div className="col">
                         <form className="px-3" onSubmit={HandleLogin}>
+                            <div className="text-center">
+                                <h2>Login</h2>
+                            </div>
                             <div className="form-group mb-2">
                                 <label htmlFor="username1">Username</label>
                                 <input

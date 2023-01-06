@@ -13,8 +13,9 @@ export const Home = () => {
                     >
                         <div className="card-body text-center">
                             <img
-                                width="200rem"
-                                src={require("../images/codeforces.jpeg")}
+                                width="200px"
+                                height={"200px"}
+                                src={require("../images/cp.png")}
                             ></img>
                             <h5 className="card-title">
                                 Competitive Programming

@@ -4,6 +4,7 @@ import config from "../config.json";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import Navbar from "../components/navbar";
 import { getUser } from "../services/authService";
@@ -19,7 +20,7 @@ function compare(a, b) {
 }
 export const GlobalRoom = () => {
     const { eventID } = useParams();
-
+    const navigate = useNavigate();
     const [requestees, setRequestees] = useState([]);
     const [candidates, setCandidates] = useState([]);
     const [reqSent, setReqSent] = useState({});
@@ -32,10 +33,14 @@ export const GlobalRoom = () => {
     const [candidatesFiltered, setCandidatesFiltered] = useState([]);
     const [requesteesFiltered, setRequesteesFiltered] = useState([]);
     const [roomsFiltered, setRoomsFiltered] = useState([]);
-    const navigate = useNavigate();
-    const [username, setUsername] = useState(getUser("token").username);
+    const [username, setUsername] = useState();
     const [myInfo, setMyInfo] = useState({});
     useEffect(() => {
+        const username = getUser("token").username;
+        setUsername(username);
+        if (!username) {
+            navigate("/auth");
+        }
         const endpoint =
             config.apiUrl + `/event/getCandidates?eventID=${eventID}`;
         fetch(endpoint)
@@ -63,7 +68,6 @@ export const GlobalRoom = () => {
                 setRequestees(requests);
                 setRequesteesFiltered(requests);
                 setMyInfo({ handle: handle, solved: solved, rating: rating });
-                console.log("data: ", data, handle);
                 socket.emit("join_room", { room: handle });
                 const endpoint3 =
                     config.apiUrl +
@@ -71,7 +75,6 @@ export const GlobalRoom = () => {
                 fetch(endpoint3)
                     .then((response) => response.json())
                     .then((data) => {
-                        console.log("data.data : ", data.data);
                         setRooms(data.data);
                         setRoomsFiltered(data.data);
                     });
@@ -89,7 +92,6 @@ export const GlobalRoom = () => {
             });
     }, []);
     const FilterCard = (c, rating_from, rating_to, handle_filter, solved) => {
-        console.log("c : ", c);
         const temp = isSubset(solved, c.solved);
         return (
             c.handle.startsWith(handle_filter) &&
@@ -133,12 +135,6 @@ export const GlobalRoom = () => {
         if (!rating_from) rating_from = 0;
         if (!rating_to) rating_to = 4000;
         let solved = [];
-        console.log(
-            "checking data rooms : ",
-            handle_filter,
-            rating_to,
-            rating_from
-        );
         questions.map((q) => {
             const temp = document.querySelector(`#${q.code}`).checked;
             if (temp) {
@@ -146,7 +142,6 @@ export const GlobalRoom = () => {
             }
         });
         const temp = c.roomMembers;
-        console.log("temp : ", temp);
         for (let i = 0; i < temp.length; i++) {
             if (temp[i].handle != myInfo.handle) {
                 if (
@@ -331,6 +326,8 @@ export const GlobalRoom = () => {
             rating: myInfo.rating,
             timestamp: timestamp,
         });
+        setReqAccepted([]);
+        toast.success("Room Created");
     };
     const HandleRandomPairing = () => {
         socket.emit("join room", myInfo.handle);
@@ -342,7 +339,6 @@ export const GlobalRoom = () => {
             rating: myInfo.rating,
         });
     };
-    const currentTab = localStorage.getItem("currentTab");
     return (
         <div>
             <Navbar user={myInfo.handle} />

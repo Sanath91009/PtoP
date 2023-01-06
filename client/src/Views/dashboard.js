@@ -13,11 +13,14 @@ function compare(a, b) {
 }
 export const Dashboard = (props) => {
     const [events, setEvents] = useState([]);
-    const [username, setUsername] = useState(getUser("token").username);
+    const [username, setUsername] = useState();
     const navigate = useNavigate();
-    var score = null;
     useEffect(() => {
-        console.log("username : ", username);
+        const username = getUser("token").username;
+        setUsername(username);
+        if (!username) {
+            navigate("/auth");
+        }
         const endPoint = config["apiUrl"] + "/getEvents?username=" + username;
         fetch(endPoint, {
             headers: { authorization: localStorage.getItem("token") },
@@ -92,7 +95,6 @@ export const Dashboard = (props) => {
                                     navigate("/profile");
                                 }
                             } else {
-                                console.log("data1: ", data);
                                 if (data.code == 200) {
                                     event_cur.showButton = "Registered";
                                     event_cur.classNameButton = "btn btn-info";
@@ -189,12 +191,39 @@ export const Dashboard = (props) => {
                                         }}
                                         key={index}
                                     >
-                                        <div className="card-body text-center my-auto">
-                                            <img
-                                                src={require("../images/codeforces.jpeg")}
-                                                width={"200px"}
-                                                height="100px"
-                                            ></img>
+                                        <div
+                                            className="card-body text-center my-auto"
+                                            style={{ color: "#333" }}
+                                        >
+                                            <div
+                                                style={{
+                                                    width: "200px",
+                                                    height: "100px",
+                                                    textAlign: "center",
+                                                }}
+                                            >
+                                                <img
+                                                    src={
+                                                        event.section ==
+                                                        "codeforces"
+                                                            ? require("../images/codeforces.jpeg")
+                                                            : require("../images/codechef.png")
+                                                    }
+                                                    width={
+                                                        event.section ==
+                                                        "codeforces"
+                                                            ? "200px"
+                                                            : "150px"
+                                                    }
+                                                    height={
+                                                        event.section ==
+                                                        "codeforces"
+                                                            ? "100px"
+                                                            : "60px"
+                                                    }
+                                                ></img>
+                                            </div>
+
                                             <h5 className="card-title">
                                                 {event.name}
                                             </h5>

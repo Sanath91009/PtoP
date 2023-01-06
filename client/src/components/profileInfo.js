@@ -82,7 +82,8 @@ export const PorfileInfo = (props) => {
                                 ) : (
                                     <FontAwesomeIcon icon={faCheckCircle} />
                                 )}{" "}
-                                for authentication
+                                for authentication (you can change back after
+                                authentication)
                             </p>
                             <button
                                 className="btn btn-primary authHandle2"

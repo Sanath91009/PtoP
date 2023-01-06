@@ -14,6 +14,7 @@ import "font-awesome/css/font-awesome.min.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min";
 import "./css/DarkMode.css";
+import { About } from "./components/about";
 
 function App() {
     return (
@@ -26,6 +27,7 @@ function App() {
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/:eventID/Groom" element={<GlobalRoom />} />
+                    <Route path="/about" element={<About />} />
                     <Route
                         path="/:eventID/Proom/:roomID"
                         element={<PrivateRoom />}

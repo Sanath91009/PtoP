@@ -1,5 +1,4 @@
 import React from "react";
-import { useState } from "react";
 import Countdown from "react-countdown";
 export const HandleForm = ({
     HandleSubmit,
@@ -59,7 +58,9 @@ export const HandleForm = ({
                     onChange={HandleChange}
                 />
                 <small id="emailHelp" className="form-text text-muted">
-                    We'll never share your email with anyone else.
+                    Make sure your email address is displayed publicly in your
+                    Codeforces profile. (you can disable public visibility after
+                    authentication)
                 </small>
             </div>
             {otp[section] && otp[section] == true && (

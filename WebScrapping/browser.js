@@ -6,7 +6,8 @@ async function startBrowser() {
         temp = await puppeteer.launch({
             headless: true,
             ignoreHTTPSErrors: true,
-            args: ["--proxy-server='direct://'", "--proxy-bypass-list=*"],
+            executablePath: process.env.CHROMIUM_PATH,
+            args: ["--no-sandbox"],
         });
     } catch (err) {
         console.log("Could not create a browser instance => : ", err);

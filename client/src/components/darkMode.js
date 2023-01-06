@@ -24,14 +24,6 @@ if (defaultDark) {
     setDark();
 }
 
-const toggleTheme = (e) => {
-    if (e.target.checked) {
-        setDark();
-    } else {
-        setLight();
-    }
-};
-
 const DarkMode = () => {
     const [isDark, setIsDark] = useState(defaultDark);
     return (
@@ -48,7 +40,7 @@ const DarkMode = () => {
             style={{ cursor: "pointer", textDecoration: "none" }}
             className="dark active"
         >
-            {isDark ? "Dark" : "Light"}
+            {!isDark ? "Dark" : "Light"}
         </a>
     );
 };

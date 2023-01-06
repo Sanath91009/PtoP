@@ -11,6 +11,15 @@ function ServerInit(conf) {
     app.use(cors({ credentials: true, origin: true }));
     app.use(xss());
     app.use(helmet());
+    app.use(
+        helmet.contentSecurityPolicy({
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'"],
+                connectSrc: ["'self'", "http://localhost:*", "ws:", "wss:"],
+            },
+        })
+    );
     app.use(bodyParser.json());
     app.use(morgan("combined"));
 

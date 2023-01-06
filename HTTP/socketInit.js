@@ -61,7 +61,7 @@ function SocketInit(app, server) {
                 if (socketToRoom[handle_temp] != undefined) {
                     socketToRoom[handle_temp].emit("createdRoom", {
                         uuid: uuid,
-                        initiated: handle_temp,
+                        initiated: handle,
                         roomMembers: roomMembers_temp,
                         timestamp: timestamp,
                     });

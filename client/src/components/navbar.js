@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, NavLink } from "react-router-dom";
+import { About } from "./about";
 import DarkMode from "./darkMode";
 const Navbar = (props) => {
     return (
@@ -21,9 +22,19 @@ const Navbar = (props) => {
                 </button>
                 <div className="collapse navbar-collapse" id="navbarNav">
                     <ul className="navbar-nav ms-auto">
+                        <li className="nav-item">
+                            <NavLink
+                                className="nav-link active"
+                                aria-current="page"
+                                to="/about"
+                                style={{ marginRight: "5px" }}
+                            >
+                                About
+                            </NavLink>
+                        </li>
                         <li
                             className="nav-item"
-                            style={{ marginTop: "7px", marginRight: "5px" }}
+                            style={{ marginTop: "8px", marginRight: "5px" }}
                         >
                             <DarkMode />
                         </li>
