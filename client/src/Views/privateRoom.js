@@ -281,6 +281,9 @@ export const PrivateRoom = () => {
         });
     }, [myPeer, CurVideoID, streamState, screenStream]);
     useEffect(() => {
+        window.addEventListener("popstate", (event) => {
+            HandleEndCall();
+        });
         socket.on("user-connected", (data) => UserConnectedHandler(data));
         socket.on("user-disconnected", (userID) => {
             console.log("disconnected...");

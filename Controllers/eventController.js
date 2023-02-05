@@ -136,7 +136,7 @@ async function registerCandidate(req, res, next) {
             const par = await userParticipated(handle, section, eventID);
             console.log("par : ", par);
             if (par.participated == false) {
-                if (par.rating < 1900) {
+                if (!par.rating || par.rating < 1900) {
                     res.send({
                         code: 401,
                         message:
